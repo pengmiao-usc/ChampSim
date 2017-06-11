@@ -61,7 +61,7 @@ cp replacement/${LLC_REPLACEMENT}.llc_repl replacement/llc_replacement.cc
 # Build
 mkdir -p bin
 make clean
-make
+make -j 4
 
 # Sanity check
 echo ""
