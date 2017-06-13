@@ -94,7 +94,7 @@ class CACHE_STATS {
     };
 };
 
-class CACHE : public MEMORY {
+class CACHE : public MEMORY { // @suppress("Class has a virtual method and non-virtual destructor")
   public:
     uint32_t cpu;
     const string NAME;
@@ -123,7 +123,7 @@ class CACHE : public MEMORY {
              roi_miss[NUM_CPUS][NUM_TYPES];
     
     // constructor
-    CACHE(string v1, uint32_t v2, int v3, uint32_t v4, uint32_t v5, uint32_t v6, uint32_t v7, uint32_t v8) 
+    CACHE(string v1, uint32_t v2, int v3, uint32_t v4, uint32_t v5, uint32_t v6, uint32_t v7, uint32_t v8) // @suppress("Class members should be properly initialized")
         : NAME(v1), NUM_SET(v2), NUM_WAY(v3), NUM_LINE(v4), WQ_SIZE(v5), RQ_SIZE(v6), PQ_SIZE(v7), MSHR_SIZE(v8) {
 
         LATENCY = 0;

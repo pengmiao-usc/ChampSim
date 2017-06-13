@@ -19,7 +19,7 @@ extern uint32_t tRP,  // Row Precharge (RP) latency
 
 extern uint64_t l2pf_access;
 
-class MEMORY {
+class MEMORY { // @suppress("Class has a virtual method and non-virtual destructor")
   public:
     // memory interface
     MEMORY *upper_level_icache[NUM_CPUS], *upper_level_dcache[NUM_CPUS], *lower_level, *extra_interface;
@@ -40,7 +40,7 @@ class MEMORY {
     // stats
     uint64_t ACCESS[NUM_TYPES], HIT[NUM_TYPES], MISS[NUM_TYPES], MSHR_MERGED[NUM_TYPES], STALL[NUM_TYPES];
 
-    MEMORY() {
+    MEMORY() { // @suppress("Class members should be properly initialized")
         for (uint32_t i=0; i<NUM_TYPES; i++) {
             ACCESS[i] = 0;
             HIT[i] = 0;

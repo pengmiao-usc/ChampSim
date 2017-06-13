@@ -92,7 +92,7 @@ class PACKET {
              ip, 
              event_cycle;
 
-    PACKET() {
+    PACKET() { // @suppress("Class members should be properly initialized")
         instruction = 0;
         tlb_access = 0;
         scheduled = 0;
@@ -232,7 +232,7 @@ class CORE_BUFFER {
     ooo_model_instr *entry;
 
     // constructor
-    CORE_BUFFER(string v1, uint32_t v2) : NAME(v1), SIZE(v2) {
+    CORE_BUFFER(string v1, uint32_t v2) : NAME(v1), SIZE(v2) { // @suppress("Class members should be properly initialized")
         head = 0;
         tail = 0;
         occupancy = 0;
