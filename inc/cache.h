@@ -219,7 +219,7 @@ class CACHE : public MEMORY { // @suppress("Class has a virtual method and non-v
      *
      * Depending on the algorithm used, the cache's prefetcher can use this information to make better predictions.
      *
-     * @author Arka Majumdar
+     * Author: Arka Majumdar
      */
     virtual void inform_branch(uint64_t ip, uint8_t taken) {
     }
