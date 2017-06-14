@@ -82,7 +82,7 @@ void O3_CPU::handle_branch()
                 if (arch_instr.destination_memory[i]) {
                     num_mem_ops++;
 
-                    // update STA, this structure is required to execute store instructios properly without deadlock
+                    // update STA, this structure is required to execute store instructions properly without deadlock
                     if (num_mem_ops > 0) {
 #ifdef SANITY_CHECK
                         if (STA[STA_tail] < UINT64_MAX) {
