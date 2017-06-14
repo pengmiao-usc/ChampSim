@@ -254,7 +254,7 @@ uint32_t O3_CPU::check_rob(uint64_t instr_id)
 
 void O3_CPU::fetch_instruction()
 {
-    // TODO: can we model wrong path execusion?
+    // TODO: can we model wrong path execution?
 
     // add this request to ITLB
     uint32_t read_index = (ROB.last_read == (ROB.SIZE-1)) ? 0 : (ROB.last_read + 1);
