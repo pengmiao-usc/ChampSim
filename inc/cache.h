@@ -213,6 +213,14 @@ class CACHE : public MEMORY { // @suppress("Class has a virtual method and non-v
              find_victim(uint32_t cpu, uint64_t instr_id, uint32_t set, const BLOCK *current_set, uint64_t ip, uint64_t full_addr, uint32_t type),
              llc_find_victim(uint32_t cpu, uint64_t instr_id, uint32_t set, const BLOCK *current_set, uint64_t ip, uint64_t full_addr, uint32_t type),
              lru_victim(uint32_t cpu, uint64_t instr_id, uint32_t set, const BLOCK *current_set, uint64_t ip, uint64_t full_addr, uint32_t type);
+
+    /*
+     * Called after a branch has occurred.
+     *
+     * Depending on the algorithm used, the cache's prefetcher can use this information to make better predictions.
+     */
+    virtual void inform_branch(uint64_t ip, uint8_t taken) {
+    }
 };
 
 #endif
