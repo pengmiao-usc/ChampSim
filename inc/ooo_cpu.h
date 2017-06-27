@@ -23,7 +23,7 @@ using namespace std;
 //#define SCHEDULING_LATENCY 6
 //#define EXEC_LATENCY 1
 
-#define STA_SIZE (ROB_SIZE*NUM_INSTR_DESTINATIONS)
+#define STA_SIZE (ROB_SIZE*NUM_INSTR_DESTINATIONS_SPARC)
 
 extern uint32_t SCHEDULING_LATENCY, EXEC_LATENCY;
 
@@ -39,6 +39,7 @@ class O3_CPU {
 
     // instruction
     input_instr current_instr;
+    cloudsuite_instr current_cloudsuite_instr;
     uint64_t instr_unique_id, completed_executions, 
              begin_sim_cycle, begin_sim_instr, 
              last_sim_cycle, last_sim_instr,
@@ -196,6 +197,5 @@ class O3_CPU {
 };
 
 extern O3_CPU ooo_cpu[NUM_CPUS];
-extern default_random_engine generator[NUM_CPUS];
 
 #endif

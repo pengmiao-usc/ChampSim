@@ -4,19 +4,25 @@
 #include "champsim.h"
 #include "instruction.h"
 
-/*
 // CACHE BLOCK
 class BLOCK {
   public:
     uint8_t valid,
             prefetch,
-            dirty;
+            dirty,
+            used;
+
+    int delta,
+        depth,
+        signature,
+        confidence;
 
     uint64_t address,
              full_addr,
              tag,
              data,
-             cpu;
+             cpu,
+             instr_id;
 
     // replacement state
     uint32_t lru;
@@ -25,6 +31,7 @@ class BLOCK {
         valid = 0;
         prefetch = 0;
         dirty = 0;
+        used = 0;
 
         delta = 0;
         depth = 0;
@@ -41,7 +48,6 @@ class BLOCK {
         lru = 0;
     };
 };
-*/
 
 // DRAM CACHE BLOCK
 class DRAM_ARRAY {
@@ -60,7 +66,9 @@ class PACKET {
             tlb_access,
             scheduled,
             translated,
-            fetched;
+            fetched,
+            prefetched,
+            drc_tag_read;
 
     int fill_level, 
         rob_signal, 
@@ -79,6 +87,7 @@ class PACKET {
              load_merged, 
              store_merged,
              returned,
+             asid[2],
              type;
 
     uint32_t cpu, data_index, lq_index, sq_index;
@@ -98,7 +107,12 @@ class PACKET {
         scheduled = 0;
         translated = 0;
         fetched = 0;
+        prefetched = 0;
+        drc_tag_read = 0;
+
         returned = 0;
+        asid[0] = UINT8_MAX;
+        asid[1] = UINT8_MAX;
         type = 0;
 
         fill_level = -1; // FIXME: grep for -1 initialization and we need to manually set these values when packet (or other varilables) get reset
@@ -138,11 +152,12 @@ class PACKET {
 // packet queue
 class PACKET_QUEUE {
   public:
-    const string NAME;
-    const uint32_t SIZE;
+    /*const*/ string NAME;
+    /*const*/ uint32_t SIZE;
 
     uint8_t  is_RQ, 
-             is_WQ;
+             is_WQ,
+             write_mode;
 
     //int head, tail;
 
@@ -172,6 +187,7 @@ class PACKET_QUEUE {
     PACKET_QUEUE(string v1, uint32_t v2) : NAME(v1), SIZE(v2) {
         is_RQ = 0;
         is_WQ = 0;
+        write_mode = 0;
 
         cpu = 0; 
         head = 0;
@@ -195,6 +211,34 @@ class PACKET_QUEUE {
         FULL = 0;
 
         entry = new PACKET[SIZE]; 
+    };
+
+    PACKET_QUEUE() {
+        is_RQ = 0;
+        is_WQ = 0;
+
+        cpu = 0; 
+        head = 0;
+        tail = 0;
+        occupancy = 0;
+        num_returned = 0;
+        next_fill_index = 0;
+        next_schedule_index = 0;
+        next_process_index = 0;
+
+        next_fill_cycle = UINT64_MAX;
+        next_schedule_cycle = UINT64_MAX;
+        next_process_cycle = UINT64_MAX;
+
+        ACCESS = 0;
+        FORWARD = 0;
+        MERGED = 0;
+        TO_CACHE = 0;
+        ROW_BUFFER_HIT = 0;
+        ROW_BUFFER_MISS = 0;
+        FULL = 0;
+
+        //entry = new PACKET[SIZE]; 
     };
 
     // destructor
@@ -296,6 +340,7 @@ class LSQ_ENTRY {
 
     uint8_t translated,
             fetched,
+            asid[2],
             forwarding_depend_on_me[ROB_SIZE];
 
     // constructor
@@ -313,6 +358,8 @@ class LSQ_ENTRY {
 
         translated = 0;
         fetched = 0;
+        asid[0] = UINT8_MAX;
+        asid[1] = UINT8_MAX;
 
         for (uint32_t i=0; i<ROB_SIZE; i++)
             forwarding_depend_on_me[i] = 0;

@@ -1,7 +1,7 @@
 app = champsim
 
 srcExt = cc
-srcDir = src replacement prefetcher
+srcDir = src branch replacement prefetcher
 objDir = obj
 binDir = bin
 inc = inc

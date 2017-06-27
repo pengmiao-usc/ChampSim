@@ -6,8 +6,18 @@ int branch_history_vector[NUM_CPUS];
 
 #define GS_HISTORY_TABLE_SIZE 16384
 int gs_history_table[NUM_CPUS][GS_HISTORY_TABLE_SIZE];
+int my_last_prediction[NUM_CPUS];
 
-uint8_t my_last_prediction[NUM_CPUS];
+void O3_CPU::initialize_branch_predictor()
+{
+    cout << "CPU " << cpu << " GSHARE branch predictor" << endl;
+
+    branch_history_vector[cpu] = 0;
+    my_last_prediction[cpu] = 0;
+
+    for(int i=0; i<GS_HISTORY_TABLE_SIZE; i++)
+        gs_history_table[cpu][i] = 2; // 2 is slightly taken
+}
 
 unsigned int gs_table_hash(uint64_t ip, int bh_vector)
 {
@@ -19,28 +29,11 @@ unsigned int gs_table_hash(uint64_t ip, int bh_vector)
     return hash;
 }
 
-void O3_CPU::initialize_branch_predictor()
-{
-    for(int j=0; j<NUM_CPUS; j++)
-    {
-        branch_history_vector[j] = 0;
-
-        for(int i=0; i<GS_HISTORY_TABLE_SIZE; i++)
-        {
-            gs_history_table[j][i] = 2; // 2 is slightly taken
-        }
-
-        my_last_prediction[j] = 0;
-    }
-}
-
 uint8_t O3_CPU::predict_branch(uint64_t ip)
 {
-    uint8_t prediction = 1;
+    int prediction = 1;
 
     int gs_hash = gs_table_hash(ip, branch_history_vector[cpu]);
-
-    //printf("%d ", gs_hash);
 
     if(gs_history_table[cpu][gs_hash] >= 2)
         prediction = 1;
@@ -54,38 +47,14 @@ uint8_t O3_CPU::predict_branch(uint64_t ip)
 
 void O3_CPU::last_branch_result(uint64_t ip, uint8_t taken)
 {
-    /*
-       static int total_branches = 0;
-       static int correct_branches = 0;
-
-       total_branches++;
-       if(taken == my_last_prediction[cpu])
-       {
-       correct_branches++;
-       }
-       if(total_branches%1000 == 0)
-       {
-       printf("%0.1f%% ", (100.0*correct_branches)/total_branches);
-       }
-       */
-
-    //printf("%d ", branch_history_vector);
-
     int gs_hash = gs_table_hash(ip, branch_history_vector[cpu]);
 
-    if(taken == 1)
-    {
+    if(taken == 1) {
         if(gs_history_table[cpu][gs_hash] < 3)
-        {
             gs_history_table[cpu][gs_hash]++;
-        }
-    }
-    else
-    {
+    } else {
         if(gs_history_table[cpu][gs_hash] > 0)
-        {
             gs_history_table[cpu][gs_hash]--;
-        }
     }
 
     // update branch history vector
