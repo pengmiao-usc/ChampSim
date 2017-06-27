@@ -4,14 +4,12 @@
 #include "champsim.h"
 #include "block.h"
 
-/*
 // CACHE ACCESS TYPE
 #define LOAD      0
 #define RFO       1
 #define PREFETCH  2
 #define WRITEBACK 3
 #define NUM_TYPES 4
-*/
 
 extern uint32_t tRP,  // Row Precharge (RP) latency
                 tRCD, // Row address to Column address (RCD) latency
@@ -33,9 +31,9 @@ class MEMORY { // @suppress("Class has a virtual method and non-virtual destruct
     virtual int  add_pq(PACKET *packet) = 0;
     virtual void return_data(PACKET *packet) = 0;
     virtual void operate() = 0;
-    virtual void increment_WQ_FULL() = 0;
-    virtual uint32_t get_occupancy(uint8_t queue_type) = 0;
-    virtual uint32_t get_size(uint8_t queue_type) = 0;
+    virtual void increment_WQ_FULL(uint64_t address) = 0;
+    virtual uint32_t get_occupancy(uint8_t queue_type, uint64_t address) = 0;
+    virtual uint32_t get_size(uint8_t queue_type, uint64_t address) = 0;
 
     // stats
     uint64_t ACCESS[NUM_TYPES], HIT[NUM_TYPES], MISS[NUM_TYPES], MSHR_MERGED[NUM_TYPES], STALL[NUM_TYPES];
@@ -60,6 +58,7 @@ class BANK_REQUEST {
     uint32_t open_row;
 
     uint8_t working,
+            working_type,
             row_buffer_hit,
             drc_hit,
             is_write,
@@ -75,6 +74,7 @@ class BANK_REQUEST {
         open_row = UINT32_MAX;
 
         working = 0;
+        working_type = 0;
         row_buffer_hit = 0;
         drc_hit = 0;
         is_write = 0;

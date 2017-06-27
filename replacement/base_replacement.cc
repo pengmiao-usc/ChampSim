@@ -4,8 +4,6 @@ uint32_t CACHE::find_victim(uint32_t cpu, uint64_t instr_id, uint32_t set, const
 {
     // baseline LRU replacement policy for other caches 
     return lru_victim(cpu, instr_id, set, current_set, ip, full_addr, type); 
-
-    return 0;
 }
 
 void CACHE::update_replacement_state(uint32_t cpu, uint32_t set, uint32_t way, uint64_t full_addr, uint64_t ip, uint64_t victim_addr, uint32_t type, uint8_t hit)
@@ -25,8 +23,6 @@ uint32_t CACHE::lru_victim(uint32_t cpu, uint64_t instr_id, uint32_t set, const 
     // fill invalid line first
     for (way=0; way<NUM_WAY; way++) {
         if (block[set][way].valid == false) {
-
-            block[set][way].valid = true;
 
             DP ( if (warmup_complete[cpu]) {
             cout << "[" << NAME << "] " << __func__ << " instr_id: " << instr_id << " invalid set: " << set << " way: " << way;

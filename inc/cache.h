@@ -2,6 +2,7 @@
 #define CACHE_H
 
 #include "memory_class.h"
+//#include "kpcp.h"
 
 // PAGE
 #define PAGE_SHIFT 12          // 4KB page
@@ -79,21 +80,6 @@ extern uint32_t PAGE_TABLE_LATENCY, SWAP_LATENCY;
 #define LLC_MSHR_SIZE 32
 #define LLC_LATENCY 20  // 4 (L1I or L1D) + 8 + 20 = 32 cycles
 
-class CACHE_STATS {
-  public:
-    uint64_t pf_issued,
-             pf_useful,
-             pf_useless,
-             pf_fill;
-
-    CACHE_STATS () {
-        pf_issued = 0;
-        pf_useful = 0;
-        pf_useless = 0;
-        pf_fill = 0;
-    };
-};
-
 class CACHE : public MEMORY { // @suppress("Class has a virtual method and non-virtual destructor")
   public:
     uint32_t cpu;
@@ -105,15 +91,19 @@ class CACHE : public MEMORY { // @suppress("Class has a virtual method and non-v
     uint32_t MAX_READ, MAX_FILL;
     uint8_t cache_type;
 
+    // prefetch stats
+    uint64_t pf_requested,
+             pf_issued,
+             pf_useful,
+             pf_useless,
+             pf_fill;
+
     // queues
     PACKET_QUEUE WQ{NAME + "_WQ", WQ_SIZE}, // write queue
                  RQ{NAME + "_RQ", RQ_SIZE}, // read queue
                  PQ{NAME + "_PQ", PQ_SIZE}, // prefetch queue
                  MSHR{NAME + "_MSHR", MSHR_SIZE}, // MSHR
                  PROCESSED{NAME + "_PROCESSED", ROB_SIZE}; // processed queue
-
-    // stats
-    CACHE_STATS STATS;
 
     uint64_t sim_access[NUM_CPUS][NUM_TYPES],
              sim_hit[NUM_CPUS][NUM_TYPES],
@@ -157,6 +147,12 @@ class CACHE : public MEMORY { // @suppress("Class has a virtual method and non-v
         fill_level = -1;
         MAX_READ = 1;
         MAX_FILL = 1;
+
+        pf_requested = 0;
+        pf_issued = 0;
+        pf_useful = 0;
+        pf_useless = 0;
+        pf_fill = 0;
     };
 
     // destructor
@@ -167,16 +163,19 @@ class CACHE : public MEMORY { // @suppress("Class has a virtual method and non-v
     };
 
     // functions
-    virtual int  add_rq(PACKET *packet);
-    virtual int  add_wq(PACKET *packet);
-    virtual int  add_pq(PACKET *packet);
-    virtual void return_data(PACKET *packet);
-    virtual void operate();
-    virtual void increment_WQ_FULL();
-    virtual uint32_t get_occupancy(uint8_t queue_type);
-    virtual uint32_t get_size(uint8_t queue_type);
+    int  add_rq(PACKET *packet),
+         add_wq(PACKET *packet),
+         add_pq(PACKET *packet);
+
+    void return_data(PACKET *packet),
+         operate(),
+         increment_WQ_FULL(uint64_t address);
+
+    uint32_t get_occupancy(uint8_t queue_type, uint64_t address),
+             get_size(uint8_t queue_type, uint64_t address);
 
     int  check_hit(PACKET *packet),
+         invalidate_entry(uint64_t inval_addr),
          check_mshr(PACKET *packet),
          prefetch_line(uint64_t ip, uint64_t base_addr, uint64_t pf_addr, int fill_level),
          kpc_prefetch_line(uint64_t base_addr, uint64_t pf_addr, int fill_level, int delta, int depth, int signature, int confidence);

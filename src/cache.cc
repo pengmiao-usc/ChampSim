@@ -2,97 +2,6 @@
 
 uint64_t l2pf_access = 0;
 
-// TODO: use one gigantic page table for all CPUs and move some variables to ooo_cpu
-// PAGE TABLE
-uint32_t PAGE_TABLE_LATENCY = 0, SWAP_LATENCY = 0;
-map <uint64_t, uint64_t> page_table[NUM_CPUS], inverse_table[NUM_CPUS], unique_cl[NUM_CPUS];
-uint64_t previous_ppage[NUM_CPUS];
-uint32_t num_adjacent_page[NUM_CPUS];
-
-// random number generator
-default_random_engine generator[NUM_CPUS];
-const uint64_t rand_min = 0;
-const uint64_t rand_max = 0xFFFFFFFFF; // (36 bits = 48 PA bits - 12 offset bits)
-
-uint64_t num_cl[NUM_CPUS], num_page[NUM_CPUS], minor_fault[NUM_CPUS], major_fault[NUM_CPUS];
-
-uint64_t va_to_pa(uint32_t cpu, uint64_t instr_id, uint64_t va)
-{
-    if (va == 0) // this is not a memory instruction
-        return 0;
-
-    uint64_t vpage = va>>PAGE_SHIFT;
-    uint64_t voffset = va & ((1<<PAGE_SHIFT) - 1);
-
-    // smart random number generator
-    uniform_int_distribution<uint64_t> distribution(rand_min, rand_max);
-    uint64_t random_ppage;
-
-    map <uint64_t, uint64_t>::iterator pr = page_table[cpu].begin();
-    map <uint64_t, uint64_t>::iterator ppage_check = inverse_table[cpu].begin();
-
-    // check unique cache line footprint
-    map <uint64_t, uint64_t>::iterator cl_check = unique_cl[cpu].find(va>>6);
-    if (cl_check == unique_cl[cpu].end())
-    {
-        cl_check = unique_cl[cpu].insert(cl_check, pair<uint64_t, uint64_t>(va>>6, 1));
-        num_cl[cpu]++;
-    }
-    else
-        cl_check->second++;
-
-    pr = page_table[cpu].find(vpage);
-    if (pr == page_table[cpu].end()) { // Page fault: No VA => PA translation yet 
-        bool fragmented = false;
-        if (num_adjacent_page[cpu] > 0)
-            random_ppage = previous_ppage[cpu]++;
-        else {
-            random_ppage = distribution(generator[cpu]); // Generate random integer flat in [rand_min, rand_mix]
-            fragmented = true;
-        }
-        random_ppage &= (~(7<<(32-PAGE_SHIFT)));
-        random_ppage |= (cpu<<(32-PAGE_SHIFT)); // encoding cpu
-
-        while (1) {
-            ppage_check = inverse_table[cpu].find(random_ppage); // Check if this page can be contiguously allocated 
-            if (ppage_check != inverse_table[cpu].end()) { // random_ppage is not available
-                if (num_adjacent_page[cpu] > 0)
-                    fragmented = true;
-
-                random_ppage = distribution(generator[cpu]); // Generate random integer flat in [rand_min, rand_mix]
-                random_ppage &= (~(7<<(32-PAGE_SHIFT)));
-                random_ppage |= (cpu<<(32-PAGE_SHIFT)); // encoding cpu
-            }
-            else
-                break;
-        }
-
-        // Insert translation to page tables
-        //printf("Insert  num_adjacent_page: %u  vpage: %lx  ppage: %lx\n", num_adjacent_page, vpage, random_ppage);
-        pr = page_table[cpu].insert(pr, pair<uint64_t, uint64_t>(vpage, random_ppage));
-        ppage_check = inverse_table[cpu].insert(ppage_check, pair<uint64_t, uint64_t>(random_ppage, vpage));
-        previous_ppage[cpu] = random_ppage;
-        num_adjacent_page[cpu]--;
-        num_page[cpu]++;
-
-        if (fragmented)
-            num_adjacent_page[cpu]= 1 << (rand() % 10);
-    }
-    else {
-        //printf("Found  vpage: %lx  random_ppage: %lx\n", vpage, pr->second);
-    }
-
-    uint64_t ppage = pr->second;
-
-    uint64_t pa = ppage<<PAGE_SHIFT;
-    pa |= voffset;
-
-    DP ( if (warmup_complete[cpu]) {
-    cout << "[PAGE_TABLE] instr_id: " << instr_id << " va: " << hex << va << " => pa: " << pa << dec << endl; });
-
-    return pa;
-}
-
 void CACHE::handle_fill()
 {
     // handle fill
@@ -112,11 +21,7 @@ void CACHE::handle_fill()
         // find victim
         uint32_t set = get_set(MSHR.entry[mshr_index].address), way;
         if (cache_type == IS_LLC) {
-#ifdef CRC2_COMPILE
-            way = GetVictimInSet(fill_cpu, set, block[set], MSHR.entry[mshr_index].ip, MSHR.entry[mshr_index].full_addr, MSHR.entry[mshr_index].type);
-#else
             way = llc_find_victim(fill_cpu, MSHR.entry[mshr_index].instr_id, set, block[set], MSHR.entry[mshr_index].ip, MSHR.entry[mshr_index].full_addr, MSHR.entry[mshr_index].type);
-#endif
         }
         else
             way = find_victim(fill_cpu, MSHR.entry[mshr_index].instr_id, set, block[set], MSHR.entry[mshr_index].ip, MSHR.entry[mshr_index].full_addr, MSHR.entry[mshr_index].type);
@@ -126,11 +31,7 @@ void CACHE::handle_fill()
 
             // update replacement policy
             if (cache_type == IS_LLC) {
-#ifdef CRC2_COMPILE
-                UpdateReplacementState(fill_cpu, set, way, MSHR.entry[mshr_index].full_addr, MSHR.entry[mshr_index].ip, 0, MSHR.entry[mshr_index].type, 0);
-#else
                 llc_update_replacement_state(fill_cpu, set, way, MSHR.entry[mshr_index].full_addr, MSHR.entry[mshr_index].ip, 0, MSHR.entry[mshr_index].type, 0);
-#endif
 
             }
             else
@@ -165,11 +66,11 @@ void CACHE::handle_fill()
 
             // check if the lower level WQ has enough room to keep this writeback request
             if (lower_level) {
-                if (lower_level->get_occupancy(2) == lower_level->get_size(2)) {
+                if (lower_level->get_occupancy(2, block[set][way].address) == lower_level->get_size(2, block[set][way].address)) {
 
                     // lower level WQ is full, cannot replace this victim
                     do_fill = 0;
-                    lower_level->increment_WQ_FULL();
+                    lower_level->increment_WQ_FULL(block[set][way].address);
                     STALL[MSHR.entry[mshr_index].type]++;
 
                     DP ( if (warmup_complete[fill_cpu]) {
@@ -211,11 +112,7 @@ void CACHE::handle_fill()
 
             // update replacement policy
             if (cache_type == IS_LLC) {
-#ifdef CRC2_COMPILE
-                UpdateReplacementState(fill_cpu, set, way, MSHR.entry[mshr_index].full_addr, MSHR.entry[mshr_index].ip, block[set][way].full_addr, MSHR.entry[mshr_index].type, 0);
-#else
                 llc_update_replacement_state(fill_cpu, set, way, MSHR.entry[mshr_index].full_addr, MSHR.entry[mshr_index].ip, block[set][way].full_addr, MSHR.entry[mshr_index].type, 0);
-#endif
 
             }
             else
@@ -289,11 +186,7 @@ void CACHE::handle_writeback()
         if (way >= 0) { // writeback hit (or RFO hit for L1D)
 
             if (cache_type == IS_LLC) {
-#ifdef CRC2_COMPILE
-                UpdateReplacementState(writeback_cpu, set, way, block[set][way].full_addr, WQ.entry[index].ip, 0, WQ.entry[index].type, 1);
-#else
                 llc_update_replacement_state(writeback_cpu, set, way, block[set][way].full_addr, WQ.entry[index].ip, 0, WQ.entry[index].type, 1);
-#endif
 
             }
             else
@@ -404,11 +297,7 @@ void CACHE::handle_writeback()
                 // find victim
                 uint32_t set = get_set(WQ.entry[index].address), way;
                 if (cache_type == IS_LLC) {
-#ifdef CRC2_COMPILE
-                    way = GetVictimInSet(writeback_cpu, set, block[set], WQ.entry[index].ip, WQ.entry[index].full_addr, WQ.entry[index].type);
-#else
                     way = llc_find_victim(writeback_cpu, WQ.entry[index].instr_id, set, block[set], WQ.entry[index].ip, WQ.entry[index].full_addr, WQ.entry[index].type);
-#endif
                 }
                 else
                     way = find_victim(writeback_cpu, WQ.entry[index].instr_id, set, block[set], WQ.entry[index].ip, WQ.entry[index].full_addr, WQ.entry[index].type);
@@ -427,11 +316,11 @@ void CACHE::handle_writeback()
 
                     // check if the lower level WQ has enough room to keep this writeback request
                     if (lower_level) { 
-                        if (lower_level->get_occupancy(2) == lower_level->get_size(2)) {
+                        if (lower_level->get_occupancy(2, block[set][way].address) == lower_level->get_size(2, block[set][way].address)) {
 
                             // lower level WQ is full, cannot replace this victim
                             do_fill = 0;
-                            lower_level->increment_WQ_FULL();
+                            lower_level->increment_WQ_FULL(block[set][way].address);
                             STALL[WQ.entry[index].type]++;
 
                             DP ( if (warmup_complete[writeback_cpu]) {
@@ -473,11 +362,7 @@ void CACHE::handle_writeback()
 
                     // update replacement policy
                     if (cache_type == IS_LLC) {
-#ifdef CRC2_COMPILE
-                        UpdateReplacementState(writeback_cpu, set, way, WQ.entry[index].full_addr, WQ.entry[index].ip, block[set][way].full_addr, WQ.entry[index].type, 0);
-#else
                         llc_update_replacement_state(writeback_cpu, set, way, WQ.entry[index].full_addr, WQ.entry[index].ip, block[set][way].full_addr, WQ.entry[index].type, 0);
-#endif
 
                     }
                     else
@@ -563,11 +448,7 @@ void CACHE::handle_read()
 
                 // update replacement policy
                 if (cache_type == IS_LLC) {
-#ifdef CRC2_COMPILE
-                    UpdateReplacementState(read_cpu, set, way, block[set][way].full_addr, RQ.entry[index].ip, 0, RQ.entry[index].type, 1);
-#else
                     llc_update_replacement_state(read_cpu, set, way, block[set][way].full_addr, RQ.entry[index].ip, 0, RQ.entry[index].type, 1);
-#endif
 
                 }
                 else
@@ -587,11 +468,11 @@ void CACHE::handle_read()
                 }
 
                 // update prefetch stats and reset prefetch bit
-                //if (block[set][way].prefetch) {
-                //    STATS.pf_useful++;
-                //    block[set][way].prefetch = 0;
-                //}
-                //block[set][way].used = 1;
+                if (block[set][way].prefetch) {
+                    pf_useful++;
+                    block[set][way].prefetch = 0;
+                }
+                block[set][way].used = 1;
 
                 HIT[RQ.entry[index].type]++;
                 ACCESS[RQ.entry[index].type]++;
@@ -624,9 +505,7 @@ void CACHE::handle_read()
                             // TODO: need to differentiate page table walk and actual swap
 
                             // emulate page table walk
-                            uint64_t pa = va_to_pa(read_cpu, RQ.entry[index].instr_id, RQ.entry[index].full_addr);
-
-                            stall_cycle[read_cpu] = current_core_cycle[read_cpu] + PAGE_TABLE_LATENCY;
+                            uint64_t pa = va_to_pa(read_cpu, RQ.entry[index].instr_id, RQ.entry[index].full_addr, RQ.entry[index].address);
 
                             RQ.entry[index].data = pa >> PAGE_SHIFT; 
                             RQ.entry[index].event_cycle = current_core_cycle[read_cpu];
@@ -790,11 +669,7 @@ void CACHE::handle_prefetch()
 
                 // update replacement policy
                 if (cache_type == IS_LLC) {
-#ifdef CRC2_COMPILE
-                    UpdateReplacementState(prefetch_cpu, set, way, block[set][way].full_addr, PQ.entry[index].ip, 0, PQ.entry[index].type, 1);
-#else
                     llc_update_replacement_state(prefetch_cpu, set, way, block[set][way].full_addr, PQ.entry[index].ip, 0, PQ.entry[index].type, 1);
-#endif
 
                 }
                 else
@@ -836,13 +711,13 @@ void CACHE::handle_prefetch()
                     DP ( if (warmup_complete[PQ.entry[index].cpu]) {
                     cout << "[" << NAME << "_PQ] " <<  __func__ << " want to add instr_id: " << PQ.entry[index].instr_id << " address: " << hex << PQ.entry[index].address;
                     cout << " full_addr: " << PQ.entry[index].full_addr << dec;
-                    cout << " occupancy: " << lower_level->get_occupancy(3) << " SIZE: " << lower_level->get_size(3) << endl; });
+                    cout << " occupancy: " << lower_level->get_occupancy(3, PQ.entry[index].address) << " SIZE: " << lower_level->get_size(3, PQ.entry[index].address) << endl; });
 
                     // first check if the lower level PQ is full or not
                     // this is possible since multiple prefetchers can exist at each level of caches
                     if (lower_level) {
                         if (cache_type == IS_LLC) {
-                            if (lower_level->get_occupancy(1) == lower_level->get_size(1))
+                            if (lower_level->get_occupancy(1, PQ.entry[index].address) == lower_level->get_size(1, PQ.entry[index].address))
                                 miss_handled = 0;
                             else {
                                 // add it to MSHRs if this prefetch miss will be filled to this cache level
@@ -853,7 +728,7 @@ void CACHE::handle_prefetch()
                             }
                         }
                         else {
-                            if (lower_level->get_occupancy(3) == lower_level->get_size(3))
+                            if (lower_level->get_occupancy(3, PQ.entry[index].address) == lower_level->get_size(3, PQ.entry[index].address))
                                 miss_handled = 0;
                             else {
                                 // add it to MSHRs if this prefetch miss will be filled to this cache level
@@ -899,7 +774,7 @@ void CACHE::handle_prefetch()
                 if (miss_handled) {
 
                     DP ( if (warmup_complete[prefetch_cpu]) {
-                    cout << "[" << NAME << "] " << __func__ << " prefetch miss not handled";
+                    cout << "[" << NAME << "] " << __func__ << " prefetch miss handled";
                     cout << " instr_id: " << PQ.entry[index].instr_id << " address: " << hex << PQ.entry[index].address;
                     cout << " full_addr: " << PQ.entry[index].full_addr << dec << " fill_level: " << PQ.entry[index].fill_level;
                     cout << " cycle: " << PQ.entry[index].event_cycle << endl; });
@@ -958,28 +833,29 @@ void CACHE::fill_cache(uint32_t set, uint32_t way, PACKET *packet)
             assert(0);
     }
 #endif
-    //if (block[set][way].prefetch && (block[set][way].used == 0))
-    //    STATS.pf_useless++;
+    if (block[set][way].prefetch && (block[set][way].used == 0))
+        pf_useless++;
 
-    block[set][way].valid = 1;
+    if (block[set][way].valid == 0)
+        block[set][way].valid = 1;
     block[set][way].dirty = 0;
-    //block[set][way].prefetch = (packet->type == PREFETCH) ? 1 : 0;
-    //block[set][way].used = 0;
+    block[set][way].prefetch = (packet->type == PREFETCH) ? 1 : 0;
+    block[set][way].used = 0;
 
-    //if (block[set][way].prefetch)
-    //    STATS.pf_fill++;
+    if (block[set][way].prefetch)
+        pf_fill++;
 
-    //block[set][way].delta = packet->delta;
-    //block[set][way].depth = packet->depth;
-    //block[set][way].signature = packet->signature;
-    //block[set][way].confidence = packet->confidence;
+    block[set][way].delta = packet->delta;
+    block[set][way].depth = packet->depth;
+    block[set][way].signature = packet->signature;
+    block[set][way].confidence = packet->confidence;
 
     block[set][way].tag = packet->address;
     block[set][way].address = packet->address;
     block[set][way].full_addr = packet->full_addr;
     block[set][way].data = packet->data;
     block[set][way].cpu = packet->cpu;
-    //block[set][way].instr_id = packet->instr_id;
+    block[set][way].instr_id = packet->instr_id;
 
     DP ( if (warmup_complete[packet->cpu]) {
     cout << "[" << NAME << "] " << __func__ << " set: " << set << " way: " << way;
@@ -1007,9 +883,40 @@ int CACHE::check_hit(PACKET *packet)
 
             DP ( if (warmup_complete[packet->cpu]) {
             cout << "[" << NAME << "] " << __func__ << " instr_id: " << packet->instr_id << " type: " << +packet->type << hex << " addr: " << packet->address;
-            cout << " full_addr: " << packet->full_addr << " tag: " << packet->address << " data: " << block[set][way].data << dec;
+            cout << " full_addr: " << packet->full_addr << " tag: " << block[set][way].tag << " data: " << block[set][way].data << dec;
             cout << " set: " << set << " way: " << way << " lru: " << block[set][way].lru;
             cout << " event: " << packet->event_cycle << " cycle: " << current_core_cycle[cpu] << endl; });
+
+            break;
+        }
+    }
+
+    return match_way;
+}
+
+int CACHE::invalidate_entry(uint64_t inval_addr)
+{
+    uint32_t set = get_set(inval_addr);
+    int match_way = -1;
+
+    if (NUM_SET < set) {
+        cerr << "[" << NAME << "_ERROR] " << __func__ << " invalid set index: " << set << " NUM_SET: " << NUM_SET;
+        cerr << " inval_addr: " << hex << inval_addr << dec << endl;
+        assert(0);
+    }
+
+    // invalidate
+    for (uint32_t way=0; way<NUM_WAY; way++) {
+        if (block[set][way].valid && (block[set][way].tag == inval_addr)) {
+
+            block[set][way].valid = 0;
+
+            match_way = way;
+
+            DP ( if (warmup_complete[cpu]) {
+            cout << "[" << NAME << "] " << __func__ << " inval_addr: " << hex << inval_addr;  
+            cout << " tag: " << block[set][way].tag << " data: " << block[set][way].data << dec;
+            cout << " set: " << set << " way: " << way << " lru: " << block[set][way].lru << " cycle: " << current_core_cycle[cpu] << endl; });
 
             break;
         }
@@ -1201,6 +1108,8 @@ int CACHE::add_wq(PACKET *packet)
 
 int CACHE::prefetch_line(uint64_t ip, uint64_t base_addr, uint64_t pf_addr, int fill_level)
 {
+    pf_requested++;
+
     if (PQ.occupancy < PQ.SIZE) {
         if ((base_addr>>PAGE_SHIFT) == (pf_addr>>PAGE_SHIFT)) {
             
@@ -1219,6 +1128,8 @@ int CACHE::prefetch_line(uint64_t ip, uint64_t base_addr, uint64_t pf_addr, int 
 
             // give a dummy 0 as the IP of a prefetch
             add_pq(&pf_packet);
+
+            pf_issued++;
 
             return 1;
         }
@@ -1252,7 +1163,7 @@ int CACHE::kpc_prefetch_line(uint64_t base_addr, uint64_t pf_addr, int fill_leve
             // give a dummy 0 as the IP of a prefetch
             add_pq(&pf_packet);
 
-            STATS.pf_issued++;
+            pf_issued++;
 
             return 1;
         }
@@ -1465,7 +1376,7 @@ void CACHE::add_mshr(PACKET *packet)
     }
 }
 
-uint32_t CACHE::get_occupancy(uint8_t queue_type)
+uint32_t CACHE::get_occupancy(uint8_t queue_type, uint64_t address)
 {
     if (queue_type == 0)
         return MSHR.occupancy;
@@ -1479,7 +1390,7 @@ uint32_t CACHE::get_occupancy(uint8_t queue_type)
     return 0;
 }
 
-uint32_t CACHE::get_size(uint8_t queue_type)
+uint32_t CACHE::get_size(uint8_t queue_type, uint64_t address)
 {
     if (queue_type == 0)
         return MSHR.SIZE;
@@ -1493,7 +1404,7 @@ uint32_t CACHE::get_size(uint8_t queue_type)
     return 0;
 }
 
-void CACHE::increment_WQ_FULL()
+void CACHE::increment_WQ_FULL(uint64_t address)
 {
     WQ.FULL++;
 }
