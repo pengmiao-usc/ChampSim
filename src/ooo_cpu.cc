@@ -276,8 +276,7 @@ void O3_CPU::handle_branch()
 
                         last_branch_result(arch_instr.ip, arch_instr.branch_taken);
 
-                    // Inform the L1D and L2C caches that a branch has occurred so that their prefetchers can
-                    // (depending on the prefetch algorithm) use the information to enhance their prediction.
+                    // Inform the L1D and L2C caches that a branch has occurred so that their prefetchers can (depending on the prefetch algorithm) use the information to enhance their prediction.
                     for (CACHE cache : { L1D, L2C }) {
                         cache.inform_branch(arch_instr.ip, arch_instr.branch_taken);
                     }

@@ -222,6 +222,9 @@ class CACHE : public MEMORY { // @suppress("Class has a virtual method and non-v
      */
     virtual void inform_branch(uint64_t ip, uint8_t taken) {
     }
+
+    virtual void inform_tlb_eviction(uint64_t inserted_page_addr, uint32_t way) {
+    }
 };
 
 #endif
