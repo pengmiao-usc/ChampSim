@@ -910,7 +910,7 @@ void O3_CPU::add_load_queue(uint32_t rob_index, uint32_t data_index)
                 if (LQ.entry[lq_index].producer_id != UINT64_MAX)
                     break;
 
-                    mem_RAW_dependency(i, rob_index, data_index, lq_index);
+                mem_RAW_dependency(i, rob_index, data_index, lq_index);
             }
         }
         else {
@@ -918,13 +918,13 @@ void O3_CPU::add_load_queue(uint32_t rob_index, uint32_t data_index)
                 if (LQ.entry[lq_index].producer_id != UINT64_MAX)
                     break;
 
-                    mem_RAW_dependency(i, rob_index, data_index, lq_index);
+                mem_RAW_dependency(i, rob_index, data_index, lq_index);
             }
             for (int i=ROB.SIZE-1; i>=(int)ROB.head; i--) { 
                 if (LQ.entry[lq_index].producer_id != UINT64_MAX)
                     break;
 
-                    mem_RAW_dependency(i, rob_index, data_index, lq_index);
+                mem_RAW_dependency(i, rob_index, data_index, lq_index);
             }
         }
     }
