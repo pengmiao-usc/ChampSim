@@ -213,7 +213,7 @@ class PACKET_QUEUE {
         entry = new PACKET[SIZE]; 
     };
 
-    PACKET_QUEUE() {
+    PACKET_QUEUE() { // @suppress("Class members should be properly initialized")
         is_RQ = 0;
         is_WQ = 0;
 
