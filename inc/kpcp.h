@@ -82,7 +82,7 @@ class GLOBAL_HISTORY_REGISTER {
         oop_delta,
         lru;
 
-    GLOBAL_HISTORY_REGISTER() {
+    GLOBAL_HISTORY_REGISTER() { // @suppress("Class members should be properly initialized")
         signature = 0;
         path_conf = 0;
         last_block = 0;
