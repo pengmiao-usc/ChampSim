@@ -1,6 +1,9 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
+#include <cstdlib>
+#include <cstdint>
+
 #include "champsim.h"
 #include "instruction.h"
 
