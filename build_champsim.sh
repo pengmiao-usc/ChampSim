@@ -1,3 +1,4 @@
+#!/bin/bash
 # ChampSim configuration
 BRANCH=$1           # branch/*.bpred
 L1D_PREFETCHER=$2   # prefetcher/*.l1d_pref
@@ -28,6 +29,7 @@ if [ ! -f ./branch/${BRANCH}.bpred ] || [ ! -f ./prefetcher/${L1D_PREFETCHER}.l1
 	p=$( embed_newline $LIST )
 	echo "$p"
 
+	echo
 	echo "${BOLD}Possible L1D Prefetcher: ${NORMAL}"
 	LIST=$(ls prefetcher/*.l1d_pref | cut -d '/' -f2 | cut -d '.' -f1)
 	p=$( embed_newline $LIST )
