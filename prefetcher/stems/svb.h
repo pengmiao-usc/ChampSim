@@ -5,6 +5,7 @@
 #ifndef PREFETCHER_STEMS_SVB_H
 #define PREFETCHER_STEMS_SVB_H
 
+#include "lru_queue.h"
 #include "svb_entry.h"
 
 namespace stems {
