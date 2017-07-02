@@ -8,7 +8,7 @@ inc = inc
 
 debug = 1
 
-CFlags = -Wall -O3 -std=c++11
+CFlags = -Wall -pedantic -std=c++11 -Wextra -Wno-unused-parameter
 LDFlags =
 libs =
 libDir =
@@ -17,9 +17,9 @@ libDir =
 #************************ DO NOT EDIT BELOW THIS LINE! ************************
 
 ifeq ($(debug),1)
-	debug=-g
+	debug=-O0 -ggdb
 else
-	debug=
+	debug=-O3
 endif
 inc := $(addprefix -I,$(inc))
 libs := $(addprefix -l,$(libs))
