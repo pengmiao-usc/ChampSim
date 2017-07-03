@@ -3,6 +3,12 @@ bin/
 obj/
 lib/
 
+# Traces
+traces/
+
+# Results
+results/
+
 # Generated CRC simulator; not part of actual source
 ChampSim_CRC2/
 

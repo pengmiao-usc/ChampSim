@@ -927,7 +927,7 @@ int CACHE::invalidate_entry(uint64_t inval_addr)
 
 int CACHE::add_rq(PACKET *packet)
 {
-    // check for the latest wirtebacks in the write queue
+    // check for the latest writebacks in the write queue
     int wq_index = WQ.check_queue(packet);
     if (wq_index != -1) {
         

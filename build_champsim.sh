@@ -70,6 +70,7 @@ cp replacement/${LLC_REPLACEMENT}.llc_repl replacement/llc_replacement.cc
 # Build
 mkdir -p bin
 rm -f bin/champsim
+make clean
 make -j
 
 # Sanity check
