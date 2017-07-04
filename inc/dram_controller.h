@@ -22,7 +22,7 @@ extern uint32_t DRAM_MTPS, DRAM_DBUS_RETURN_TIME;
 #define MIN_DRAM_WRITES_PER_SWITCH (DRAM_WQ_SIZE*1/4)
 
 // DRAM
-class MEMORY_CONTROLLER : public MEMORY {
+class MEMORY_CONTROLLER : public MEMORY { // @suppress("Class has a virtual method and non-virtual destructor")
   public:
     const string NAME;
 
