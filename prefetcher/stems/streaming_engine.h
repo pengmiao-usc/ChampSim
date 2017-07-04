@@ -30,7 +30,11 @@ public:
 	iterator find(stream_queue_id queue_id);
 
 	template<typename StreamQueue>
-	void push_front(StreamQueue&& new_queue);
+	void push_front(StreamQueue&& new_queue) {
+		super::push_front(
+				std::pair<stream_queue_id, stream_queue>(++m_stream_count,
+						std::forward<StreamQueue>(new_queue)));
+	}
 };
 
 }

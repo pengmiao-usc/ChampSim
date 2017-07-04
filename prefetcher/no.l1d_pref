@@ -19,3 +19,10 @@ void CACHE::l1d_prefetcher_final_stats()
 {
 
 }
+
+void CACHE::inform_eviction(uint64_t address) {
+}
+
+bool CACHE::access_svb(uint8_t type, PACKET* packet) {
+    return false;
+}

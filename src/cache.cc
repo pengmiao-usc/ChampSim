@@ -182,7 +182,11 @@ void CACHE::handle_writeback()
         // access cache
         uint32_t set = get_set(WQ.entry[index].address);
         int way = check_hit(&WQ.entry[index]);
-        
+
+        if (cache_type == IS_L2C) {
+            access_svb(WRITEBACK, &WQ.entry[index]);
+        }
+
         if (way >= 0) { // writeback hit (or RFO hit for L1D)
 
             if (cache_type == IS_LLC) {
@@ -413,8 +417,17 @@ void CACHE::handle_read()
             // access cache
             uint32_t set = get_set(RQ.entry[index].address);
             int way = check_hit(&RQ.entry[index]);
-            
-            if (way >= 0) { // read hit
+
+            // If the cache is L2, scan the SVB in parallel.
+            bool svb_hit = (cache_type == IS_L2C) && access_svb(LOAD, &RQ.entry[index]);
+
+            if (way >= 0) {
+                // If there is a hit in the cache directly, always prefer the cache over the SVB.
+                // However, access_svb must always be called when scanning the L2 to train the prefetcher.
+                svb_hit = false;
+            }
+
+            if (way >= 0 || svb_hit) { // read hit
 
                 if (cache_type == IS_ITLB) {
                     RQ.entry[index].instruction_pa = block[set][way].data;
@@ -440,23 +453,40 @@ void CACHE::handle_read()
 
                 // update prefetcher on load instruction
                 if (RQ.entry[index].type == LOAD) {
-                    if (cache_type == IS_L1D) 
-                        l1d_prefetcher_operate(block[set][way].full_addr, RQ.entry[index].ip, 1, RQ.entry[index].type);
-                    else if (cache_type == IS_L2C)
-                        l2c_prefetcher_operate(block[set][way].full_addr, RQ.entry[index].ip, 1, RQ.entry[index].type);
+                    if (!svb_hit) {
+                        if (cache_type == IS_L1D)
+                            l1d_prefetcher_operate(block[set][way].full_addr, RQ.entry[index].ip, 1, RQ.entry[index].type);
+                        else if (cache_type == IS_L2C)
+                            l2c_prefetcher_operate(block[set][way].full_addr, RQ.entry[index].ip, 1, RQ.entry[index].type);
+                    } else {
+                        assert(cache_type == IS_L2C);
+                        l2c_prefetcher_operate(RQ.entry[index].full_addr, RQ.entry[index].ip, 1, RQ.entry[index].type);
+                    }
                 }
 
-                // update replacement policy
-                if (cache_type == IS_LLC) {
-                    llc_update_replacement_state(read_cpu, set, way, block[set][way].full_addr, RQ.entry[index].ip, 0, RQ.entry[index].type, 1);
-
+                if (!svb_hit) {
+                    // update replacement policy
+                    if (cache_type == IS_LLC) {
+                        llc_update_replacement_state(read_cpu, set, way, block[set][way].full_addr, RQ.entry[index].ip, 0, RQ.entry[index].type, 1);
+                    }
+                    else
+                        update_replacement_state(read_cpu, set, way, block[set][way].full_addr, RQ.entry[index].ip, 0, RQ.entry[index].type, 1);
                 }
-                else
-                    update_replacement_state(read_cpu, set, way, block[set][way].full_addr, RQ.entry[index].ip, 0, RQ.entry[index].type, 1);
 
                 // COLLECT STATS
                 sim_hit[read_cpu][RQ.entry[index].type]++;
                 sim_access[read_cpu][RQ.entry[index].type]++;
+
+                if (!svb_hit) {
+                    // update prefetch stats and reset prefetch bit
+                    if (block[set][way].prefetch) {
+                        pf_useful++;
+                        block[set][way].prefetch = 0;
+                    }
+                    block[set][way].used = 1;
+                } else {
+                    pf_useful++;
+                }
 
                 // check fill level
                 if (RQ.entry[index].fill_level < fill_level) {
@@ -466,13 +496,6 @@ void CACHE::handle_read()
                     else // data
                         upper_level_dcache[read_cpu]->return_data(&RQ.entry[index]);
                 }
-
-                // update prefetch stats and reset prefetch bit
-                if (block[set][way].prefetch) {
-                    pf_useful++;
-                    block[set][way].prefetch = 0;
-                }
-                block[set][way].used = 1;
 
                 HIT[RQ.entry[index].type]++;
                 ACCESS[RQ.entry[index].type]++;

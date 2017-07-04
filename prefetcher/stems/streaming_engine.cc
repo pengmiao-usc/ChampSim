@@ -19,13 +19,6 @@ streaming_engine::iterator streaming_engine::find(stream_queue_id queue_id) {
 	return end();
 }
 
-template<typename StreamQueue>
-void streaming_engine::push_front(StreamQueue&& new_queue) {
-	super::push_front(
-			std::pair<stream_queue_id, stream_queue>(++m_stream_count,
-					std::forward<StreamQueue>(new_queue)));
-}
-
 void streaming_engine::pre_eviction(const value_type& value) {
 	m_stats["streaming-engine-evictions"]++;
 }

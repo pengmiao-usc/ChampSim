@@ -2,14 +2,21 @@
  * Implementation author: Arka Majumdar
  */
 
+#include "../../inc/uncore.h"
+
 #include "stems.h"
 #include "stems_config.h"
+#include "memory_class.h"
 
 //#define ENABLE_HARDCODED_TESTING
 
+using namespace std;
+
 namespace stems {
 
-stems_prefetcher::stems_prefetcher() :
+stems_prefetcher::stems_prefetcher(CACHE* l1d) :
+		// Set CPU number.
+		m_l1d(l1d),
 		// Initialize the map of statistics.
 		m_stats(),
 		// Set the initial access count to 0 because no accesses have been made yet.
@@ -74,8 +81,8 @@ stems_prefetcher::stems_prefetcher() :
 	getNextAddress(1, a + 4, false, 0);
 #endif
 #ifdef ENABLE_HARDCODED_TESTING
-	std::cout << "Hardcoded tests completed. Exiting..." << std::endl;
-	std::exit(0);
+	cout << "Hardcoded tests completed. Exiting..." << endl;
+	exit(0);
 #endif
 }
 
@@ -110,7 +117,7 @@ void stems_prefetcher::operate(address current_address, pc pc, bool cache_hit,
 				// Spatial-only reconstruction.
 				reconstruct(current_address, spatial_sequence);
 				move_reconstruction_to_queue(new_queue);
-				m_streaming_engine.push_front(std::move(new_queue));
+				m_streaming_engine.push_front(move(new_queue));
 			}
 		} else {
 			m_stats["normal-streams"]++;
@@ -119,7 +126,7 @@ void stems_prefetcher::operate(address current_address, pc pc, bool cache_hit,
 			// Reconstruct.
 			reconstruct(new_queue.m_next_rmob_index);
 			move_reconstruction_to_queue(new_queue);
-			m_streaming_engine.push_front(std::move(new_queue));
+			m_streaming_engine.push_front(move(new_queue));
 		}
 		// (Streaming first, training second, otherwise streaming will use just-trained data rather than previous history).
 		/*
@@ -137,9 +144,7 @@ void stems_prefetcher::operate(address current_address, pc pc, bool cache_hit,
 	// Always train the spatial prefetcher.
 	m_spatial_prefetcher.inform_access(pc, current_address, m_access_count);
 	// Start fetching stuff.
-	// This loop just tries to maintain the stream lookahead and adds items from new stream queues
-	// (as opposed to stems_prefetcher::access_svb, which is where the main SVB handling code is).
-	for (std::pair<stream_queue_id, stream_queue>& pair : m_streaming_engine) {
+	for (pair<stream_queue_id, stream_queue>& pair : m_streaming_engine) {
 		stream_queue& queue = pair.second;
 		svb::size_type num_fetch = 0;
 		if (queue.m_new_stream) {
@@ -149,7 +154,7 @@ void stems_prefetcher::operate(address current_address, pc pc, bool cache_hit,
 		} else if (queue.m_useful_stream) {
 			// Maintain stream lookahead for all streams.
 			num_fetch =
-					std::min(m_svb.max_size() - m_svb.size(),
+					min(m_svb.max_size() - m_svb.size(),
 							m_stream_lookahead
 									- m_svb.m_const_current_lookahead.find(
 											pair.first)->second);
@@ -163,7 +168,7 @@ void stems_prefetcher::operate(address current_address, pc pc, bool cache_hit,
 	}
 	// The TMS paper mentions groups of FIFOs per stream queue, but STeMS makes no mention of them, and they don't really make sense in STeMS: should they be implemented?
 	// Refill stream queues.
-	for (std::pair<stream_queue_id, stream_queue>& pair : m_streaming_engine) {
+	for (pair<stream_queue_id, stream_queue>& pair : m_streaming_engine) {
 		stream_queue& queue = pair.second;
 		if (!queue.m_spatial_only_stream
 				&& queue.size() < m_reconstruction_resume_threshold) {
@@ -174,25 +179,14 @@ void stems_prefetcher::operate(address current_address, pc pc, bool cache_hit,
 	}
 }
 
-// This method (in contrast to the second loop in stems_prefetcher::getNextAddress) handles invalidations on writes to the SVB,
-// reading from the SVB into buffers, and fetching new blocks into the SVB for useful stream queues.
-bool stems_prefetcher::access_svb(Core::mem_op_t mem_op_type, pc pc,
-		address address, block_offset offset, Byte* data_buffer) {
+bool stems_prefetcher::access_svb(cache_access_type type, PACKET* packet) {
 	m_stats["access_svb-receieved"]++;
 	for (svb::iterator it = m_svb.begin(); it != m_svb.end();) {
-		if (it->m_address == address) {
+		if (it->m_packet->full_addr == packet->full_addr) {
 			m_stats["svb-hits"]++;
-			switch (mem_op_type) {
-			case Core::READ: {
+			switch (type) {
+			case LOAD: {
 				m_stats["svb-reads"]++;
-				// I don't know why sniper gives me a null data_buffer sometimes...
-				if (data_buffer) {
-					// copy into result buffer
-					std::memcpy(data_buffer, it->m_data.get(),
-							m_cache_cntlr->getCacheBlockSize());
-				}
-				// Move block into L1 on SVB hit.
-				insert_cache_block(pc, address, it->m_data.get());
 				// Remember to capture the origin stream before removing the entry from the SVB.
 				streaming_engine::iterator origin_stream_it =
 						m_streaming_engine.find(it->m_origin);
@@ -206,18 +200,13 @@ bool stems_prefetcher::access_svb(Core::mem_op_t mem_op_type, pc pc,
 				} else {
 					m_stats["useful-streams"]++;
 					stream_queue& queue = origin_stream_it->second;
-					if (!queue.empty()) {
-						fetch_to_svb(queue.front(), origin_stream_it->first,
-								false);
-						queue.pop_front();
-					}
 					queue.m_useful_stream = true;
 					m_streaming_engine.use(origin_stream_it);
 				}
+				// Caller (L2) will pull packet into L1.
 				return true;
 			}
-			case Core::READ_EX:
-			case Core::WRITE:
+			case WRITEBACK:
 				m_stats["svb-invalidates"]++;
 				// Invalidate block on write.
 				// No "valid bit" in my implementation; just remove the entry.
@@ -243,15 +232,13 @@ void stems_prefetcher::inform_eviction(address address) {
 
 void stems_prefetcher::fetch_to_svb(address address, stream_queue_id origin,
 		bool unlock_cache_cntlr) {
-	svb_entry new_entry(address, m_cache_cntlr->getCacheBlockSize(), origin);
-	read_dram(address, new_entry.m_data.get(), unlock_cache_cntlr);
-	m_svb.push_front(std::move(new_entry));
+	m_svb.push_front(svb_entry(read_dram(address), origin));
 }
 
 void stems_prefetcher::move_reconstruction_to_queue(stream_queue& queue) {
 	for (address& elem : m_reconstruction_buffer) {
 		if (elem) { // Don't allow null addresses (which are gaps left by reconstruction).
-			queue.push_back(std::move(elem));
+			queue.push_back(move(elem));
 		}
 	}
 }
@@ -312,16 +299,31 @@ void stems_prefetcher::reconstruct(address trigger_address,
 	m_stats["reconstructions"]++;
 }
 
-void stems_prefetcher::read_dram(address address, Byte* data_buffer,
-		bool unlock_cache_cntlr) {
-	// TODO
+// Idealized: timeliness is not taken into account (0 DRAM latency when fetched from prefetcher).
+PACKET* stems_prefetcher::read_dram(address address) {
+	// Idealization
+	latency latency = 0;
+
+	m_l1d->pf_requested++;
+
+	PACKET* pf_packet = new PACKET();
+	pf_packet->fill_level = FILL_L1;
+	pf_packet->cpu = m_l1d->cpu;
+	pf_packet->address = address >> LOG2_BLOCK_SIZE;
+	pf_packet->full_addr = address;
+	pf_packet->ip = 0;
+	pf_packet->type = PREFETCH;
+	pf_packet->event_cycle = current_core_cycle[m_l1d->cpu] + latency;
+
+	m_l1d->pf_issued++;
+
 	m_stats["dram-reads"]++;
+
+	return pf_packet;
 }
 
-void stems_prefetcher::insert_cache_block(pc pc, address address,
-		Byte* data_buffer) {
-	// TODO
-	m_stats["cache-block-inserts"]++;
+const map<string, stat>& stems_prefetcher::stats() const {
+	return m_stats;
 }
 
 }

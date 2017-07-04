@@ -1,5 +1,5 @@
 /**
- * Define some types here so that the rest of the code is simulator-independent and more readable.
+ * Define some types here so that the rest of the code is more simulator-independent and readable.
  *
  * Implementation author: Arka Majumdar
  */
@@ -38,8 +38,7 @@ using stats = std::map<std::string, stat>;
 
 using stream_queue_id = unsigned int;
 
-// TODO
-using data = char[];
+using latency = uint32_t;
 
 }
 

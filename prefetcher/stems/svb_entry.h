@@ -5,6 +5,8 @@
 #ifndef PREFETCHER_STEMS_SVB_ENTRY_H
 #define PREFETCHER_STEMS_SVB_ENTRY_H
 
+#include "../../inc/block.h"
+
 #include "stems_types.h"
 
 namespace stems {
@@ -15,11 +17,7 @@ namespace stems {
  */
 class svb_entry {
 public:
-	address m_address;
-
-	size_t m_data_length;
-
-	std::unique_ptr<Byte[]> m_data;
+	PACKET* m_packet;
 
 	/**
 	 * Reference to the stream queue that this entry was prefetched from.
@@ -28,7 +26,9 @@ public:
 
 	svb_entry();
 
-	svb_entry(address address, size_t data_length, stream_queue_id origin);
+	svb_entry(PACKET* packet, stream_queue_id origin);
+
+	~svb_entry();
 };
 
 }

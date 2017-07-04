@@ -7,6 +7,9 @@
 
 #include <vector>
 
+#include "../../inc/block.h"
+#include "../../inc/cache.h"
+
 #include "stems_types.h"
 #include "lru_queue.h"
 #include "reconstruction_buffer.h"
@@ -23,20 +26,20 @@ public:
 	/**
 	 * Initializes the STeMS prefetcher and its parts from the configuration options.
 	 */
-	stems_prefetcher();
+	stems_prefetcher(CACHE* l1d);
 
-	void operate(address address, pc pc,
-			bool cache_hit,
+	void operate(address address, pc pc, bool cache_hit,
 			cache_access_type type);
 
 	void inform_eviction(address address);
 
-	bool access_svb(Core::mem_op_t mem_op_type, pc pc, address address,
-			block_offset offset, Byte* data_buffer);
+	bool access_svb(cache_access_type type, PACKET* packet);
 
-	const std::map<std::string, stat>& stats();
+	const std::map<std::string, stat>& stats() const;
 
 private:
+	CACHE* m_l1d;
+
 	std::map<std::string, stat> m_stats;
 
 	access_count m_access_count;
@@ -64,7 +67,7 @@ private:
 	svb::size_type m_stream_lookahead;
 
 	/**
-	 * The crux of the paper: reconstruction.
+	 * The core of the paper: reconstruction.
 	 * This will add on a reconstructed stream of values to the reconstruction buffer given the temporally prefetched spatial triggers. It will also conduct spatial lookups for these triggers and interleave them with the overall sequence.
 	 *
 	 * (See Figure 3 and 5 from the STeMS paper).
@@ -78,9 +81,7 @@ private:
 	 */
 	void reconstruct(address trigger_address, const sms::sequence& sequence);
 
-	void read_dram(address address, Byte* data_buffer, bool unlock_cache_cntlr);
-
-	void insert_cache_block(pc pc, address addres, Byte* data_buffer);
+	PACKET* read_dram(address address);
 };
 
 }
