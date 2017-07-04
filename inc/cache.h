@@ -218,25 +218,9 @@ class CACHE : public MEMORY { // @suppress("Class has a virtual method and non-v
      *
      * Depending on the algorithm used, the cache's prefetcher can use this information to make better predictions.
      */
-    void inform_branch(uint64_t ip, uint8_t taken)
-#ifndef INFORM_BRANCH_DEFINED
-    // Supply default implementations of additional cache methods for prefetchers/replacement policies that do not implement them.
-    // This is a preprocessor workaround for the fact that ChampSim system is not polymorphic.
-    {
-    }
-#else
-    ;
-#endif
+    void inform_branch(uint64_t ip, uint8_t taken);
 
-    void inform_tlb_eviction(uint64_t inserted_page_addr, uint32_t way)
-#ifndef INFORM_TLB_EVICTION_DEFINED
-    // Supply default implementations of additional cache methods for prefetchers/replacement policies that do not implement them.
-    // This is a preprocessor workaround for the fact that ChampSim system is not polymorphic.
-    {
-    }
-#else
-    ;
-#endif
+    void inform_tlb_eviction(uint64_t inserted_page_addr, uint32_t way);
 };
 
 #endif

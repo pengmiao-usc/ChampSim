@@ -19,3 +19,9 @@ void CACHE::l2c_prefetcher_final_stats()
 {
 
 }
+
+void CACHE::inform_branch(uint64_t ip, uint8_t taken) {
+}
+
+void CACHE::inform_tlb_eviction(uint64_t intserted_page_adder, uint32_t way) {
+}
