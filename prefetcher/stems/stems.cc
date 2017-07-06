@@ -39,21 +39,23 @@ stems_prefetcher::stems_prefetcher(CACHE* l1d) :
         m_svb(STEMS_SVB_SIZE, m_stats),
         //
         m_stream_lookahead(STEMS_SVB_STREAM_LOOKAHEAD) {
+    // Testing code is written here as a workaround for lack of a test framework in ChampSim.
+    // To run tests, make sure "ENABLE_HARDCOADED_TESTING" is enabled, then step through this with a debugger.
 #ifdef ENABLE_HARDCODED_TESTING
     address a = 1000, b = 2000, c = 3000, d = 4000;
     /*
      * Testing example from STeMS paper, Fig. 3.
      */
-    getNextAddress(1, a, false, 0);
-    getNextAddress(1, a + 4, false, 0);
-    getNextAddress(2, b, false, 0);
-    getNextAddress(1, a + 2, false, 0);
-    getNextAddress(2, b + 6, false, 0);
-    getNextAddress(1, a - 1, false, 0);
-    getNextAddress(3, c, false, 0);
-    getNextAddress(4, d, false, 0);
-    getNextAddress(4, d + 1, false, 0);
-    getNextAddress(4, d + 2, false, 0);
+    operate(a, 1, false, LOAD);
+    operate(a + 4, 1, false, LOAD);
+    operate(b, 2, false, LOAD);
+    operate(a + 2, 1, false, LOAD);
+    operate(b + 6, 2, false, LOAD);
+    operate(a - 1, 1, false, LOAD);
+    operate(c, 3, false, LOAD);
+    operate(d, 4, false, LOAD);
+    operate(d + 1, 4, false, LOAD);
+    operate(d + 2, 4, false, LOAD);
     /*
      * Testing SMS AGT -> PST behavior.
      */
@@ -64,23 +66,23 @@ stems_prefetcher::stems_prefetcher(CACHE* l1d) :
     /*
      * Testing example from STeMS paper, Fig. 5.
      */
-    getNextAddress(1, a, false, 0);
+    operate(a, 1, false, LOAD);
     /*
      * Testing spatial-only stream behavior.
      */
-    getNextAddress(1, 488, false,
-            0); // 488 has the same spatial-region offset as 1000 (value of a) when the spatial region size is 32.
+    operate(488, 1, false, LOAD); // 488 has the same spatial-region offset as 1000 (value of a) when the spatial region size is 32.
     /*
      * Testing access_svb behavior.
      */
-    Byte test_buffer[m_cache_cntlr->getCacheBlockSize()];
-    access_svb(Core::READ, 1, a, 0, test_buffer);
+    {
+        PACKET packet;
+        packet.full_addr = a;
+        access_svb(LOAD, &packet);
+    }
     /*
      * Testing refill behavior on useful streams.
      */
-    getNextAddress(1, a + 4, false, 0);
-#endif
-#ifdef ENABLE_HARDCODED_TESTING
+    operate(a + 4, 1, false, LOAD);
     cout << "Hardcoded tests completed. Exiting..." << endl;
     exit(0);
 #endif
