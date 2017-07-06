@@ -86,7 +86,6 @@ stems_prefetcher::stems_prefetcher(CACHE* l1d) :
 #endif
 }
 
-// FIXME Port from Sniper.
 void stems_prefetcher::operate(address current_address, pc pc, bool cache_hit,
 		cache_access_type type) {
 	m_stats["operate-received"]++;
@@ -153,13 +152,15 @@ void stems_prefetcher::operate(address current_address, pc pc, bool cache_hit,
 			queue.m_new_stream = false;
 		} else if (queue.m_useful_stream) {
 			// Maintain stream lookahead for all streams.
-			num_fetch =
-					min(m_svb.max_size() - m_svb.size(),
-							m_stream_lookahead
-									- m_svb.m_const_current_lookahead.find(
-											pair.first)->second);
-			// Should I prefetch more if there is space? Is there a designated single "active stream"?
-			// Vague in the STeMS paper.
+			// "Intelligent" stream lookahead: tries to fill the empty space only with items from streams.
+//			num_fetch =
+//					min(m_svb.max_size() - m_svb.size(),
+//							m_stream_lookahead
+//									- m_svb.m_const_current_lookahead.find(
+//											pair.first)->second);
+			// "Normal" stream lookahead: always maintains stream lookahead for all streams.
+			num_fetch = m_stream_lookahead
+					- m_svb.m_const_current_lookahead.find(pair.first)->second;
 		}
 		for (svb::size_type i = 0; i < num_fetch && !queue.empty(); i++) {
 			fetch_to_svb(queue.front(), pair.first, true);
