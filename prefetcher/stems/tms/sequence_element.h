@@ -11,19 +11,19 @@ namespace stems {
 namespace tms {
 
 struct sequence_element {
-	pc m_pc;
+    pc m_pc;
 
-	address m_address;
+    address m_address;
 
-	/**
-	 * Delta for STeMS reconstruction.
-	 */
-	reconstruction_delta m_delta;
+    /**
+     * Delta for STeMS reconstruction.
+     */
+    reconstruction_delta m_delta;
 
-	/**
-	 * This will indicate whether or not this sequence element is actually just empty space in the RMOB, or actually useful data.
-	 */
-	bool m_valid;
+    /**
+     * This will indicate whether or not this sequence element is actually just empty space in the RMOB, or actually useful data.
+     */
+    bool m_valid;
 };
 
 }

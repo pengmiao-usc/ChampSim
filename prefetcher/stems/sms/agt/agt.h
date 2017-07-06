@@ -20,18 +20,18 @@ class sms;
  * The Active Generation Table.
  */
 class agt: public lru_map<spatial_region_tag, generation> {
-	using super = lru_map<spatial_region_tag, generation>;
+    using super = lru_map<spatial_region_tag, generation>;
 
-	sms& m_sms;
+    sms& m_sms;
 
-	void pre_map_eviction(const value_type& elem) override;
+    void pre_map_eviction(const value_type& elem) override;
 
-	stats& m_stats;
+    stats& m_stats;
 
 public:
-	agt(size_type max_size, sms& sms, stats& stats);
+    agt(size_type max_size, sms& sms, stats& stats);
 
-	void inform_eviction(spatial_region_tag tag);
+    void inform_eviction(spatial_region_tag tag);
 };
 
 }

@@ -15,26 +15,26 @@ namespace stems {
  * STeMS manages multiple stream queues in a method similar to the TSE (Temporal Streaming Engine) from TMS.
  */
 class streaming_engine: public lru_queue<
-		std::pair<stream_queue_id, stream_queue>> {
-	using super = lru_queue<std::pair<stream_queue_id, stream_queue>>;
+        std::pair<stream_queue_id, stream_queue>> {
+    using super = lru_queue<std::pair<stream_queue_id, stream_queue>>;
 
-	stream_queue_id m_stream_count;
+    stream_queue_id m_stream_count;
 
-	stats& m_stats;
+    stats& m_stats;
 
-	void pre_eviction(const value_type& value) override;
+    void pre_eviction(const value_type& value) override;
 
 public:
-	streaming_engine(size_type num_stream_queues, stats& stats);
+    streaming_engine(size_type num_stream_queues, stats& stats);
 
-	iterator find(stream_queue_id queue_id);
+    iterator find(stream_queue_id queue_id);
 
-	template<typename StreamQueue>
-	void push_front(StreamQueue&& new_queue) {
-		super::push_front(
-				std::pair<stream_queue_id, stream_queue>(++m_stream_count,
-						std::forward<StreamQueue>(new_queue)));
-	}
+    template<typename StreamQueue>
+    void push_front(StreamQueue&& new_queue) {
+        super::push_front(
+                std::pair<stream_queue_id, stream_queue>(++m_stream_count,
+                        std::forward < StreamQueue > (new_queue)));
+    }
 };
 
 }

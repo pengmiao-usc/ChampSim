@@ -28,34 +28,34 @@ stems_prefetcher* g_prefetcher_for_cpu[NUM_CPUS];
 }
 
 void CACHE::l1d_prefetcher_initialize() {
-	g_prefetcher_for_cpu[cpu] = new stems_prefetcher(this);
+    g_prefetcher_for_cpu[cpu] = new stems_prefetcher(this);
 }
 
 void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip,
-		uint8_t cache_hit, uint8_t type) {
-	g_prefetcher_for_cpu[cpu]->operate(addr, ip, cache_hit == 1, type);
+        uint8_t cache_hit, uint8_t type) {
+    g_prefetcher_for_cpu[cpu]->operate(addr, ip, cache_hit == 1, type);
 }
 
 void CACHE::l1d_prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way,
-		uint8_t prefetch, uint64_t evicted_addr) {
-	/*
-	 * Operation unsupported. Do nothing.
-	 */
+        uint8_t prefetch, uint64_t evicted_addr) {
+    /*
+     * Operation unsupported. Do nothing.
+     */
 }
 
 void CACHE::l1d_prefetcher_final_stats() {
-	for (std::pair<std::string, stat> pair : g_prefetcher_for_cpu[cpu]->stats()) {
-		std::cout << pair.first << "=" << pair.second << std::endl;
-	}
-	// This is the final call to this prefetcher (as indicated by the name of the method).
-	// We should delete the heap-allocated prefetcher object for this CPU now.
-	delete g_prefetcher_for_cpu[cpu];
+    for (std::pair<std::string, stat> pair : g_prefetcher_for_cpu[cpu]->stats()) {
+        std::cout << pair.first << "=" << pair.second << std::endl;
+    }
+    // This is the final call to this prefetcher (as indicated by the name of the method).
+    // We should delete the heap-allocated prefetcher object for this CPU now.
+    delete g_prefetcher_for_cpu[cpu];
 }
 
 void CACHE::inform_eviction(uint64_t address) {
-	g_prefetcher_for_cpu[cpu]->inform_eviction(address);
+    g_prefetcher_for_cpu[cpu]->inform_eviction(address);
 }
 
 bool CACHE::access_svb(uint8_t type, PACKET* packet) {
-	return g_prefetcher_for_cpu[cpu]->access_svb(type, packet);
+    return g_prefetcher_for_cpu[cpu]->access_svb(type, packet);
 }

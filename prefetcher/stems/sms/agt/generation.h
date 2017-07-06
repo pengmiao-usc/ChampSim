@@ -8,17 +8,17 @@
 #include "../sms_types.h"
 #include "../sequence.h"
 
-namespace stems{
+namespace stems {
 namespace sms {
 
 struct generation {
-	pc m_trigger_pc;
+    pc m_trigger_pc;
 
-	spatial_region_offset m_trigger_offset;
+    spatial_region_offset m_trigger_offset;
 
-	access_count m_last_count;
+    access_count m_last_count;
 
-	sequence m_sequence;
+    sequence m_sequence;
 };
 
 }

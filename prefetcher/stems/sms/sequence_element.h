@@ -14,9 +14,9 @@ namespace sms {
  * An offset-delta pair in the sequence of SMS accesses.
  */
 struct sequence_element {
-	offset m_offset;
+    offset m_offset;
 
-	reconstruction_delta m_delta;
+    reconstruction_delta m_delta;
 };
 
 }

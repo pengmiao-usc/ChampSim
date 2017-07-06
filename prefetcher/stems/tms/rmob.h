@@ -16,19 +16,19 @@ namespace tms {
  * The Region Miss Order Buffer -- basically a GHB.
  */
 class rmob: public std::vector<sequence_element> {
-	using super = std::vector<sequence_element>;
+    using super = std::vector<sequence_element>;
 
 public:
-	using index_type = long int;
+    using index_type = long int;
 
-	reference operator[](index_type pos);
+    reference operator[](index_type pos);
 
-	const_reference operator[](index_type pos) const;
+    const_reference operator[](index_type pos) const;
 
 private:
-	rmob(size_type n);
+    rmob(size_type n);
 
-	friend class tms;
+    friend class tms;
 };
 
 }

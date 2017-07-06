@@ -15,16 +15,16 @@ namespace stems {
  * STeMS reconstruction buffer.
  */
 class reconstruction_buffer: public std::vector<address> {
-	using super = std::vector<address>;
+    using super = std::vector<address>;
 
-	stats& m_stats;
+    stats& m_stats;
 
 public:
-	reconstruction_buffer(size_type size, stats& stats);
+    reconstruction_buffer(size_type size, stats& stats);
 
-	void clear();
+    void clear();
 
-	bool place(size_type index, address value);
+    bool place(size_type index, address value);
 };
 
 }

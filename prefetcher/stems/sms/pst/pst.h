@@ -17,14 +17,14 @@ namespace sms {
  * The Pattern Sequence Table.
  */
 class pst: public lru_map<pc_offset, sequence> {
-	using super = lru_map<pc_offset, sequence>;
+    using super = lru_map<pc_offset, sequence>;
 
-	stats& m_stats;
+    stats& m_stats;
 
-	void pre_map_eviction(const value_type& elem) override;
+    void pre_map_eviction(const value_type& elem) override;
 
 public:
-	pst(size_type max_size, stats& stats);
+    pst(size_type max_size, stats& stats);
 };
 
 }
