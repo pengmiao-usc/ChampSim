@@ -89,7 +89,7 @@ stems_prefetcher::stems_prefetcher(CACHE* l1d) :
 // FIXME Port from Sniper.
 void stems_prefetcher::operate(address current_address, pc pc, bool cache_hit,
 		cache_access_type type) {
-	m_stats["getNextAddress-received"]++;
+	m_stats["operate-received"]++;
 	m_access_count++; // Keep a running count of the current number of accesses in order to calculate deltas.
 	if (!cache_hit) {
 		m_stats["cache-misses-received"]++;
@@ -133,7 +133,7 @@ void stems_prefetcher::operate(address current_address, pc pc, bool cache_hit,
 		 * STeMS section 4.1 "High Level Operation: Training"
 		 */
 		// If this was a miss, inform the temporal prefetcher.
-		// But first, make sure it is a trigger and can't be predicted spatially
+		// But first, make sure it is a trigger and can't be predicted spatially.
 		if (spatial_sequence.empty()
 				&& m_spatial_prefetcher.is_trigger_access(current_address)) {
 			m_stats["temporal-triggers-recorded"]++;
