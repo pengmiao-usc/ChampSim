@@ -6,7 +6,7 @@
 
 namespace stems {
 
-reconstruction_buffer::reconstruction_buffer(size_type size, stats& stats) :
+reconstruction_buffer::reconstruction_buffer(size_type size, std::map<std::string, stat>& stats) :
         super(size), m_stats(stats) {
 }
 

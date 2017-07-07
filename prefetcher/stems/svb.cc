@@ -6,7 +6,7 @@
 
 namespace stems {
 
-svb::svb(size_type size, stats& stats) :
+svb::svb(size_type size, std::map<std::string, stat>& stats) :
         super(size), m_stats(stats), m_current_lookahead(), m_const_current_lookahead(
                 m_current_lookahead) {
 }

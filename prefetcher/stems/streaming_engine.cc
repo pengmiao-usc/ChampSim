@@ -6,7 +6,7 @@
 
 namespace stems {
 
-streaming_engine::streaming_engine(size_type num_stream_queues, stats& stats) :
+streaming_engine::streaming_engine(size_type num_stream_queues, std::map<std::string, stat>& stats) :
         super(num_stream_queues), m_stream_count(0), m_stats(stats) {
 }
 

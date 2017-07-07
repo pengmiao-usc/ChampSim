@@ -20,12 +20,12 @@ class streaming_engine: public lru_queue<
 
     stream_queue_id m_stream_count;
 
-    stats& m_stats;
+    std::map<std::string, stat>& m_stats;
 
     void pre_eviction(const value_type& value) override;
 
 public:
-    streaming_engine(size_type num_stream_queues, stats& stats);
+    streaming_engine(size_type num_stream_queues, std::map<std::string, stat>& stats);
 
     iterator find(stream_queue_id queue_id);
 

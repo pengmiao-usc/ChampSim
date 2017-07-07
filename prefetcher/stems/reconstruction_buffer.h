@@ -17,10 +17,10 @@ namespace stems {
 class reconstruction_buffer: public std::vector<address> {
     using super = std::vector<address>;
 
-    stats& m_stats;
+    std::map<std::string, stat>& m_stats;
 
 public:
-    reconstruction_buffer(size_type size, stats& stats);
+    reconstruction_buffer(size_type size, std::map<std::string, stat>& stats);
 
     void clear();
 

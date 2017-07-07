@@ -60,11 +60,11 @@ class sms {
     static inline unsigned int get_spatial_region_shift(
             address spatial_region_size);
 
-    stats& m_stats;
+    std::map<std::string, stat>& m_stats;
 
 public:
     sms(address sptial_region_size, pst::size_type pst_size,
-            agt::size_type agt_size, stats& stats);
+            agt::size_type agt_size, std::map<std::string, stat>& stats);
 
     sequence get_sequence(pc pc, address address) const;
 

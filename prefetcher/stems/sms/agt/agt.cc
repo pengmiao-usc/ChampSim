@@ -8,7 +8,7 @@
 namespace stems {
 namespace sms {
 
-agt::agt(size_type size, sms& sms, stats& stats) :
+agt::agt(size_type size, sms& sms, std::map<std::string, stat>& stats) :
         super(size), m_sms(sms), m_stats(stats) {
 }
 

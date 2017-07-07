@@ -26,10 +26,10 @@ class agt: public lru_map<spatial_region_tag, generation> {
 
     void pre_map_eviction(const value_type& elem) override;
 
-    stats& m_stats;
+    std::map<std::string, stat>& m_stats;
 
 public:
-    agt(size_type max_size, sms& sms, stats& stats);
+    agt(size_type max_size, sms& sms, std::map<std::string, stat>& stats);
 
     void inform_eviction(spatial_region_tag tag);
 };

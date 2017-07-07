@@ -35,8 +35,6 @@ using cache_access_type = uint8_t;
 
 using stat = uint64_t;
 
-using stats = std::map<std::string, stat>;
-
 using stream_queue_id = unsigned int;
 
 using latency = uint32_t;

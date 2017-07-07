@@ -19,12 +19,12 @@ namespace sms {
 class pst: public lru_map<pc_offset, sequence> {
     using super = lru_map<pc_offset, sequence>;
 
-    stats& m_stats;
+    std::map<std::string, stat>& m_stats;
 
     void pre_map_eviction(const value_type& elem) override;
 
 public:
-    pst(size_type max_size, stats& stats);
+    pst(size_type max_size, std::map<std::string, stat>& stats);
 };
 
 }

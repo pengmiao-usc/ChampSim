@@ -10,7 +10,7 @@ namespace stems {
 namespace sms {
 
 sms::sms(address spatial_region_size, pst::size_type pst_size,
-        agt::size_type agt_size, stats& stats) :
+        agt::size_type agt_size, std::map<std::string, stat>& stats) :
         m_pst(pst_size, stats), m_agt(agt_size, *this, stats), m_spatial_region_mask(
                 spatial_region_size - 1), m_spatial_region_shift(
                 get_spatial_region_shift(spatial_region_size)), m_stats(stats) {

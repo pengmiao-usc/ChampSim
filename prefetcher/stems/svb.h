@@ -13,10 +13,10 @@ namespace stems {
 class svb: public lru_queue<svb_entry> {
     using super = lru_queue<svb_entry>;
 
-    stats& m_stats;
+    std::map<std::string, stat>& m_stats;
 
 public:
-    svb(size_type size, stats& stats);
+    svb(size_type size, std::map<std::string, stat>& stats);
 
     template<typename SVBEntry>
     void push_front(SVBEntry&& value) {

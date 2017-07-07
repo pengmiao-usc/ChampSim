@@ -7,7 +7,7 @@
 namespace stems {
 namespace sms {
 
-pst::pst(size_type max_size, stats& stats) :
+pst::pst(size_type max_size, std::map<std::string, stat>& stats) :
         super(max_size), m_stats(stats) {
 }
 
