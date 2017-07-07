@@ -24,9 +24,6 @@ using pc = uint64_t;
  */
 using address = uint64_t;
 
-using block_offset = uint32_t;
-// offset within the cache itself
-
 using reconstruction_delta = uint64_t;
 
 using access_count = uint64_t;
