@@ -431,7 +431,7 @@ int MEMORY_CONTROLLER::add_rq(PACKET *packet)
         return -1;
     }
 
-    // check for the latest wirtebacks in the write queue
+    // check for the latest writebacks in the write queue
     uint32_t channel = dram_get_channel(packet->address);
     int wq_index = check_dram_queue(&WQ[channel], packet);
     if (wq_index != -1) {

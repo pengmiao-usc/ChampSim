@@ -1174,7 +1174,7 @@ int CACHE::kpc_prefetch_line(uint64_t base_addr, uint64_t pf_addr, int fill_leve
 
 int CACHE::add_pq(PACKET *packet)
 {
-    // check for the latest wirtebacks in the write queue
+    // check for the latest writebacks in the write queue
     int wq_index = WQ.check_queue(packet);
     if (wq_index != -1) {
         
