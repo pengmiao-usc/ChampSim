@@ -4,6 +4,10 @@
 #include <vector>
 #include <list>
 #include <cassert>
+#include <functional>
+#include <cstdint>
+#include <map>
+#include <iostream>
 
 //char buffer[100];
 //#define debug sprintf
@@ -124,7 +128,20 @@ typedef unsigned long long pattern_t;
 
 struct SMS_prefetcher_t
 {
+    struct SMS_Stats
+    {
+        typedef std::map<std::string,long long> tCounters;
+        tCounters theCounters;
+        ~SMS_Stats() {
+            for(tCounters::iterator i=theCounters.begin();i!=theCounters.end();++i) {
+                std::cerr << i->first << "," << i->second << std::endl;
+            }
+        }
+    } theStats;
+
     uint64_t theRegionShift,theRegionSize,theRegionMask,theBlocksPerRegion;
+    typedef std::function<bool(uint64_t pc, uint64_t base_addr, uint64_t addr, int delay)> InitPrefetch;
+    InitPrefetch theInitPrefetch;
     
     struct AGTent {
         uint64_t pc;
@@ -150,11 +167,13 @@ struct SMS_prefetcher_t
     void checkEvictions( );
 
     public :
-    SMS_prefetcher_t() :
-          theRegionShift(9) // shift: 12 = 4KB region, 10 = 1KB region
+    SMS_prefetcher_t(InitPrefetch theInitPrefetch) :
+          theStats()
+        , theRegionShift(9) // shift: 12 = 4KB region, 10 = 1KB region
         , theRegionSize(1<<theRegionShift)
         , theRegionMask(theRegionSize-1)
         , theBlocksPerRegion(theRegionSize/theBlockSize)
+        , theInitPrefetch(theInitPrefetch)
 //        , theAGT(4,16,theRegionShift,27-theRegionShift)
         , theAGT(16,16,theRegionShift,27-theRegionShift)
 //        , thePHT(256,8,NoRotation?0:2,14)

@@ -1,0 +1,56 @@
+/*
+ * This file serves as the interface between the ChampSim cache system and the
+ * object-oriented implementation of SMS. See the "sms" directory for the
+ * actual implementation and all supporting files.
+ *
+ * The reason this file exists is to expose the SMS prefetcher as an option
+ * in the build_champsim.sh script and also provide greater modularity in the
+ * actual code.
+ *
+ * File author: Arka Majumdar
+ */
+
+#include "sms/sms.h"
+
+#include "cache.h"
+
+using namespace std;
+
+/*
+ * Create an anonymous namespace so there are no naming conflicts between
+ * "g_prefetcher_for_cpu" and any other
+ */
+namespace {
+/*
+ * Maintain one stems_prefetcher per CPU.
+ */
+SMS_prefetcher_t* g_prefetcher_for_cpu[NUM_CPUS];
+}
+
+void CACHE::l1d_prefetcher_initialize() {
+    g_prefetcher_for_cpu[cpu] = new SMS_prefetcher_t([this] (uint64_t pc, uint64_t base_addr, uint64_t addr, int delay) -> bool {
+        // TODO Delay?
+        return (prefetch_line(pc, base_addr, addr, FILL_L1) != 0) ? true : false;
+    });
+}
+
+void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip,
+        uint8_t cache_hit, uint8_t type) {
+    g_prefetcher_for_cpu[cpu]->IssuePrefetchCandidates(ip, addr, false, cache_hit == 1);
+}
+
+void CACHE::l1d_prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way,
+        uint8_t prefetch, uint64_t evicted_addr) {
+    /*
+     * Operation unsupported. Do nothing.
+     */
+}
+
+void CACHE::l1d_prefetcher_final_stats() {
+    for (pair<string, long long> pair : g_prefetcher_for_cpu[cpu]->theStats.theCounters) {
+        cout << pair.first << "=" << pair.second << endl;
+    }
+    // This is the final call to this prefetcher (as indicated by the name of the method).
+    // We should delete the heap-allocated prefetcher object for this CPU now.
+    delete g_prefetcher_for_cpu[cpu];
+}

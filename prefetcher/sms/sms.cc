@@ -8,22 +8,11 @@
  * Then adapted for the ChampSim simulator: Arka Majumdar
  */
 
-#include <map>
 #include <string>
 #include <cassert>
 
 #include "sms.h"
-
-struct SMS_Stats
-{
-    typedef std::map<std::string,long long> tCounters;
-    tCounters theCounters;
-    ~SMS_Stats() {
-        for(tCounters::iterator i=theCounters.begin();i!=theCounters.end();++i) {
-            std::cerr << i->first << "," << i->second << std::endl;
-        }
-    }
-} theStats;
+#include "sms_config.h"
 
 #define C(n) do { ++(theStats.theCounters[(#n)]); } while(0);
 #define S(n,v) do { (theStats.theCounters[(#n)])+=(v); } while(0);
@@ -185,7 +174,7 @@ void SMS_prefetcher_t::IssuePrefetchCandidates( uint64_t rip, uint64_t addr, boo
             int offset = theBlocksPerRegion-2; // extra -1 to avoid prefetch of trigger
             if(NoRotation) offset += 1;
             //assert((pht_ent->second.pattern-1)&pht_ent->second.pattern);
-            int lookahead = config.lookahead;
+            int lookahead = SMS_LOOKAHEAD;
             uint64_t num_prefetched = 0;
             for(pattern_t pattern = pht_ent->second.pattern;pattern;--offset) {
                 //debug(buffer,"  prediction at offset %d, pattern is %llx and region_offset %d\n",offset,pht_ent->second.pattern,region_offset);
@@ -202,9 +191,9 @@ void SMS_prefetcher_t::IssuePrefetchCandidates( uint64_t rip, uint64_t addr, boo
                 //debug(buffer,"  prediction&= %llx\n",prediction);
                 //debug(buffer,"  prediction!= %llx\n",region_tag + prediction);
                 if(lookahead == 0){
-                    InitPrefetch(region_tag + prediction, 2*num_prefetched);
+                    theInitPrefetch(pc, addr, region_tag + prediction, 2*num_prefetched);
                     num_prefetched++;
-                    if(num_prefetched == config.degree)
+                    if(num_prefetched == SMS_DEGREE)
                         return;
                 }
                 else
