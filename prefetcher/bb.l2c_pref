@@ -1,21 +1,62 @@
+/*
+ * This file serves as the interface between the ChampSim cache system and the
+ * object-oriented implementation of BB. See the "bb" directory for the
+ * actual implementation and all supporting files.
+ *
+ * The reason this file exists is to expose the BB prefetcher as an option
+ * in the build_champsim.sh script and also provide greater modularity in the
+ * actual code.
+ *
+ * Author: Arka Majumdar
+ */
+
+#include "bb/bb.h"
+
 #include "cache.h"
 
-void CACHE::l2c_prefetcher_initialize() 
-{
+using namespace bb;
 
+/*
+ * Create an anonymous namespace so there are no naming conflicts between
+ * "g_prefetcher_for_cpu" and any other
+ */
+namespace {
+/*
+ * Maintain one stems_prefetcher per CPU.
+ */
+bb_prefetcher* g_prefetcher_for_cpu[NUM_CPUS];
 }
 
-void CACHE::l2c_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit, uint8_t type)
-{
-
+void CACHE::l2c_prefetcher_initialize() {
+    g_prefetcher_for_cpu[cpu] =
+            new bb_prefetcher(
+                    [this] (uint64_t ip, uint64_t base_address, uint64_t prefetch_address) -> bool {
+                        return (prefetch_line(ip, base_address, prefetch_address, FILL_L2) != 0) ? true : false;
+                    });
 }
 
-void CACHE::l2c_prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way, uint8_t prefetch, uint64_t evicted_addr)
-{
-
+void CACHE::l2c_prefetcher_operate(uint64_t addr, uint64_t ip,
+        uint8_t cache_hit, uint8_t type) {
+    g_prefetcher_for_cpu[cpu]->operate(addr, ip, cache_hit == 1, type);
 }
 
-void CACHE::l2c_prefetcher_final_stats()
-{
+void CACHE::l2c_prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way,
+        uint8_t prefetch, uint64_t evicted_addr) {
+    // Operation unsupported. Do nothing.
+}
 
+void CACHE::l2c_prefetcher_final_stats() {
+    for (std::pair<std::string, stat> pair : g_prefetcher_for_cpu[cpu]->stats()) {
+        std::cout << pair.first << "=" << pair.second << std::endl;
+    }
+    // This is the final call to this prefetcher (as indicated by the name of the method).
+    // We should delete the heap-allocated prefetcher object for this CPU now.
+    delete g_prefetcher_for_cpu[cpu];
+}
+
+void CACHE::inform_branch(uint64_t ip, uint8_t taken) {
+    g_prefetcher_for_cpu[cpu]->inform_branch((taken) ? true : false);
+}
+
+void CACHE::inform_tlb_eviction(uint64_t inserted_page_addr, uint32_t way) {
 }
