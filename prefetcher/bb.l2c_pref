@@ -30,8 +30,8 @@ bb_prefetcher* g_prefetcher_for_cpu[NUM_CPUS];
 void CACHE::l2c_prefetcher_initialize() {
     g_prefetcher_for_cpu[cpu] =
             new bb_prefetcher(
-                    [this] (uint64_t ip, uint64_t base_address, uint64_t prefetch_address) -> bool {
-                        return (prefetch_line(ip, base_address, prefetch_address, FILL_L2) != 0) ? true : false;
+                    [this] (uint64_t ip, uint64_t base_address, uint64_t prefetch_block) -> bool {
+                        return (prefetch_line(ip, base_address, prefetch_block << LOG2_BLOCK_SIZE, FILL_L2) != 0) ? true : false;
                     });
 }
 

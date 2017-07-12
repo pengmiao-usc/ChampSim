@@ -14,7 +14,7 @@
 namespace bb {
 
 class bb_prefetcher {
-    using prefetch_line_func = std::function<bool(pc pc, address base_address, address prefetch_address)>;
+    using prefetch_line_func = std::function<bool(pc pc, address base_address, block prefetch_block)>;
 
 public:
     bb_prefetcher(prefetch_line_func prefetch_line);
@@ -30,7 +30,7 @@ private:
 
     ghb m_ghb;
 
-    using index_table = std::unordered_map<address, ghb::size_type>;
+    using index_table = std::unordered_map<block, ghb::size_type>;
 
     index_table m_branch_taken_index_table, m_branch_not_taken_index_table;
 

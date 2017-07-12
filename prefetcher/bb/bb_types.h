@@ -24,11 +24,13 @@ using pc = uint64_t;
  */
 using address = uint64_t;
 
+using block = uint64_t;
+
 using cache_access_type = uint8_t;
 
 using stat = uint64_t;
 
-using delta = int32_t;
+using delta = int64_t;
 
 }
 

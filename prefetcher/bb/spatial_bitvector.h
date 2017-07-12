@@ -13,7 +13,7 @@
 
 namespace bb {
 
-template<uint16_t NumBefore, uint16_t NumAfter>
+template<uint32_t NumBefore, uint32_t NumAfter>
 class spatial_bitvector {
     std::array<bool, NumBefore> m_before;
 
@@ -24,7 +24,7 @@ public:
 
     using const_reference = const bool&;
 
-    using index_type = int32_t;
+    using index_type = int64_t;
 
     spatial_bitvector() {
         m_before.fill(false);

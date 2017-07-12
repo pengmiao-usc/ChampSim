@@ -1,5 +1,5 @@
 /*
- * Author: Arka Majudmar
+ * Author: Arka Majumdar
  */
 
 #ifndef PREFETCHER_BB_GHB_ENTRY_H
@@ -13,9 +13,9 @@ namespace bb {
 struct ghb_entry {
     ghb_entry();
 
-    ghb_entry(address trigger);
+    ghb_entry(block trigger);
 
-    address m_trigger;
+    block m_trigger;
 
     bb_spatial_bitvector m_spatial;
 

@@ -33,17 +33,19 @@ bb_prefetcher::bb_prefetcher(prefetch_line_func prefetch_line) :
 void bb_prefetcher::operate(address address, pc pc, bool cache_hit,
         cache_access_type type) {
     m_stats["operations"]++;
+    block block = address >> LOG2_BLOCK_SIZE;
     index_table& index_table = index_table_for(m_last_branch_taken);
     if (m_watching_for_trigger) {
+        m_watching_for_trigger = false;
         m_stats["triggers"]++;
         // First access after a branch.
-        index_table::iterator it = index_table.find(address);
+        index_table::iterator it = index_table.find(block);
         if (it == index_table.end()) {
             m_stats["new_triggers"]++;
             // New trigger.
             // Add to GHB.
-            m_current_ghb_entry_index = m_ghb.append(ghb_entry(address));
-            index_table[address] = m_current_ghb_entry_index;
+            m_current_ghb_entry_index = m_ghb.append(ghb_entry(block));
+            index_table[block] = m_current_ghb_entry_index;
         } else {
             m_stats["hits"]++;
             // Found previously.
@@ -74,7 +76,7 @@ void bb_prefetcher::operate(address address, pc pc, bool cache_hit,
         if (!entry.m_valid) {
             return;
         }
-        delta spatial_delta = ((delta) address) - ((delta) entry.m_trigger);
+        delta spatial_delta = ((delta) block) - ((delta) entry.m_trigger);
         m_stats["spatial_delta:" + to_string(spatial_delta)]++;
         if (entry.m_spatial.in_range(spatial_delta)) {
             m_stats["in_spatial_range"]++;
@@ -82,7 +84,7 @@ void bb_prefetcher::operate(address address, pc pc, bool cache_hit,
         } else {
             m_stats["out_of_spatial_range"]++;
             // Out of spatial range: make it a temporal trigger but don't list it in the index table.
-            m_ghb.append(ghb_entry(address));
+            m_ghb.append(ghb_entry(block));
         }
     }
 }
