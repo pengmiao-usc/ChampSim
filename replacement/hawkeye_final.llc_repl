@@ -43,12 +43,12 @@ bool prefetched[LLC_SETS][LLC_WAYS];
 #define MAX_SHCT 31
 #define SHCT_SIZE_BITS 11
 #define SHCT_SIZE (1<<SHCT_SIZE_BITS)
-#include "hawkeye_predictor.h"
+#include "hawkeye/hawkeye_predictor.h"
 HAWKEYE_PC_PREDICTOR* demand_predictor;  //Predictor
 HAWKEYE_PC_PREDICTOR* prefetch_predictor;  //Predictor
 
 #define OPTGEN_VECTOR_SIZE 128
-#include "optgen.h"
+#include "hawkeye/optgen.h"
 OPTgen perset_optgen[LLC_SETS]; // per-set occupancy vectors; we only use 64 of these
 
 #include <math.h>
