@@ -20,10 +20,11 @@ ghb::reference ghb::operator[](size_type pos) {
 
 template<typename GHBEntry>
 ghb::size_type ghb::append(GHBEntry&& entry) {
+    operator[](m_counter) = std::forward<GHBEntry>(entry);
+    size_type old_counter = m_counter;
     m_counter++;
     m_counter %= size();
-    operator[](m_counter) = std::forward < GHBEntry > (entry);
-    return m_counter;
+    return old_counter;
 }
 template ghb::size_type ghb::append(const ghb_entry& entry);
 template ghb::size_type ghb::append(ghb_entry&& entry);
