@@ -8,8 +8,8 @@
 #include <map>
 #include <set>
 #include <cassert>
-#include "training_unit.h"
-#include "off_chip_info.h"
+#include "isb/training_unit.h"
+#include "isb/off_chip_info.h"
 
 unsigned int total_access;
 unsigned int reuse;
