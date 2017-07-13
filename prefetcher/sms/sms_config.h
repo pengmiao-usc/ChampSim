@@ -1,7 +1,7 @@
 #ifndef SMS_LOOKAHEAD
-#define SMS_LOOKAHEAD 2
+#define SMS_LOOKAHEAD 1
 #endif
 
 #ifndef SMS_DEGREE
-#define SMS_DEGREE 2
+#define SMS_DEGREE 1
 #endif
