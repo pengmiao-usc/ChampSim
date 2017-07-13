@@ -28,6 +28,8 @@ SMS_prefetcher_t* g_prefetcher_for_cpu[NUM_CPUS];
 }
 
 void CACHE::l1d_prefetcher_initialize() {
+    // No good place to delete this without modifying the CACHE destructor specifically for SMS.
+    // Lifetime is the end of the program and will be deallocated anyway when the program ends, so do not delete explicitly.
     g_prefetcher_for_cpu[cpu] = new SMS_prefetcher_t([this] (uint64_t pc, uint64_t base_addr, uint64_t addr, int delay) -> bool {
         // TODO Delay?
         return (prefetch_line(pc, base_addr, addr, FILL_L1) != 0) ? true : false;
@@ -47,10 +49,7 @@ void CACHE::l1d_prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way,
 }
 
 void CACHE::l1d_prefetcher_final_stats() {
-    for (pair<string, long long> pair : g_prefetcher_for_cpu[cpu]->theStats.theCounters) {
+    for (const pair<string, long long>& pair : g_prefetcher_for_cpu[cpu]->theStats.theCounters) {
         cout << pair.first << "=" << pair.second << endl;
     }
-    // This is the final call to this prefetcher (as indicated by the name of the method).
-    // We should delete the heap-allocated prefetcher object for this CPU now.
-    delete g_prefetcher_for_cpu[cpu];
 }
