@@ -1,3 +1,9 @@
+# Files which are swapped around on every build by build_champsim.sh
+branch/branch_predictor.cc
+prefetcher/l1d_prefetcher.cc
+prefetcher/l2c_prefetcher.cc
+replacement/llc_replacement.cc
+
 # Compiled files
 bin/
 obj/
