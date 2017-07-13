@@ -49,7 +49,9 @@ void CACHE::l1d_prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way,
 }
 
 void CACHE::l1d_prefetcher_final_stats() {
+    cout << "===L1D PREFETCHER FINAL STATS===" << endl;
     for (const pair<string, long long>& pair : g_prefetcher_for_cpu[cpu]->theStats.theCounters) {
         cout << pair.first << "=" << pair.second << endl;
     }
+    cout << "===END L1D PREFETCHER FINAL STATS===" << endl;
 }
