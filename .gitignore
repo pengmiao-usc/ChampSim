@@ -16,6 +16,9 @@ ChampSim_CRC2/
 *.bak
 *.orig
 
+# Scripts that have now become site-local
+scripts/*.sh
+
 # Eclipse IDE metadata
 .cproject
 .project
