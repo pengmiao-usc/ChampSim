@@ -14,6 +14,7 @@
 
 #include "cache.h"
 
+using namespace std;
 using namespace stems;
 
 /*
@@ -29,6 +30,7 @@ stems_prefetcher* g_prefetcher_for_cpu[NUM_CPUS];
 
 void CACHE::l1d_prefetcher_initialize() {
     g_prefetcher_for_cpu[cpu] = new stems_prefetcher(this);
+    cout << "CPU " << cpu << " L1D STeMS prefetcher" << endl;
 }
 
 void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip,
@@ -44,8 +46,8 @@ void CACHE::l1d_prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way,
 }
 
 void CACHE::l1d_prefetcher_final_stats() {
-    for (std::pair<std::string, stat> pair : g_prefetcher_for_cpu[cpu]->stats()) {
-        std::cout << pair.first << "=" << pair.second << std::endl;
+    for (pair<string, stat> pair : g_prefetcher_for_cpu[cpu]->stats()) {
+        cout << pair.first << "=" << pair.second << endl;
     }
     // This is the final call to this prefetcher (as indicated by the name of the method).
     // We should delete the heap-allocated prefetcher object for this CPU now.
