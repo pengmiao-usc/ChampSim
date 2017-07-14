@@ -1,9 +1,46 @@
 #include "cache.h"
+#include <vector>
+
+uint64_t accurate_prefetches[NUM_CPUS];
+uint64_t total_prefetches[NUM_CPUS];
+uint64_t demand_misses[NUM_CPUS];
+uint64_t pollution[NUM_CPUS][NUM_CPUS];
+
+struct POLLUTION_ENTRY
+{
+    uint64_t victim_addr;
+    uint32_t cpu;
+
+    POLLUTION_ENTRY(uint64_t _addr, uint32_t _cpu)
+    {
+        victim_addr = _addr;
+        cpu = _cpu;
+    }
+};
+
+bool prefetched[LLC_SET][LLC_WAY];
+vector<POLLUTION_ENTRY> pollution_filter;
+#define FILTER_SIZE 4096*NUM_CPUS
 
 // initialize replacement state
 void CACHE::llc_initialize_replacement()
 {
+    for(int i=0; i<NUM_CPUS; i++)
+    {
+        accurate_prefetches[i] = 0;
+        total_prefetches[i] = 0;
+        demand_misses[i] = 0;
+        for(int j=0; j<NUM_CPUS; j++)
+            pollution[i][j] = 0;
+    }
 
+    for (int i=0; i<LLC_SET; i++) {
+        for (int j=0; j<LLC_WAY; j++) {
+            prefetched[i][j]= false;
+        }
+    }
+
+    pollution_filter.clear();
 }
 
 // find replacement victim
@@ -44,10 +81,80 @@ void CACHE::llc_update_replacement_state(uint32_t cpu, uint32_t set, uint32_t wa
     if (hit && (type == WRITEBACK)) // writeback hit does not update LRU state
         return;
 
+    victim_addr = (victim_addr >> 6) << 6;
+    full_addr = (full_addr >> 6) << 6;
+
+    if(type == PREFETCH)
+    {
+        if(!hit)
+        {
+            total_prefetches[cpu]++;
+            if((victim_addr != 0) && !(prefetched[set][way])) // Demand victim
+            {   
+                POLLUTION_ENTRY new_entry(victim_addr, cpu);
+                pollution_filter.push_back(new_entry);
+                while(pollution_filter.size() > FILTER_SIZE)
+                    pollution_filter.erase(pollution_filter.begin());
+            }
+
+            for(vector<POLLUTION_ENTRY>::iterator it=pollution_filter.begin(); it != pollution_filter.end(); it++)
+            {
+                if((*it).victim_addr == full_addr)
+                {
+                    pollution_filter.erase(it); // We kicked it out, but brought it back in
+                    break;
+                }
+            }
+
+            prefetched[set][way] = true;
+        }
+    }
+    else
+    {
+        if((hit) && prefetched[set][way])
+            accurate_prefetches[cpu]++;
+
+        if(!hit)
+        {
+            demand_misses[cpu]++;
+
+            for(vector<POLLUTION_ENTRY>::iterator it=pollution_filter.begin(); it != pollution_filter.end(); it++)
+            {
+                if((*it).victim_addr == full_addr)
+                {
+                    // Victim Core: cpu; Attack Core: (*it).cpu
+                    pollution[(*it).cpu][cpu]++;
+                    pollution_filter.erase(it);
+                    break;
+                }
+            }
+        }
+
+        prefetched[set][way] = false;
+    }
+
     return lru_update(set, way);
 }
 
 void CACHE::llc_replacement_final_stats()
 {
+    for(int i=0; i<NUM_CPUS; i++)
+    {
+        cout << "Core " << i << " Accuracy: " << 100*(double)accurate_prefetches[i]/(double)total_prefetches[i] << endl;
+        cout << "Core " << i << " Accurate prefetches " << accurate_prefetches[i] << " out of " << total_prefetches[i] << endl;
+        cout << "Core " << i << " Coverage: " << 100*(double)accurate_prefetches[i]/(double)(accurate_prefetches[i] + demand_misses[i]) << endl;
+        uint64_t pollution_others = 0;
+        uint64_t demand_others = 0;
+        for(int j=0; j<NUM_CPUS; j++)
+        {
+            if(i != j)
+            {
+                pollution_others += pollution[i][j];
+                demand_others += demand_misses[j];
+            }
+            cout << "Core " << i << " pollution on " << j << ": " << 100*(double)pollution[i][j]/(double)demand_misses[j] << " " << pollution[i][j] << " " << demand_misses[j] << endl;
+        }
 
+        cout << "Core " << i << " Pollution: " << 100*(double)pollution[i][i]/(double)demand_misses[i] << " " << 100*(double)pollution_others/(double)demand_others << endl;
+    }
 }
