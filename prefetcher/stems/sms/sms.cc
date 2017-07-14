@@ -57,7 +57,19 @@ sequence sms::get_sequence(pc pc, address address) const {
 }
 
 void sms::inform_eviction(address address) {
-    commit_to_pst(get_spatial_region_tag(address));
+    spatial_region_tag tag = get_spatial_region_tag(address);
+    spatial_region_offset region_offset = get_spatial_region_offset(address);
+    agt::const_iterator it = m_agt.find(tag); // find the address in the AGT
+    if (it != m_agt.end()) {
+        const generation& entry = it->second;
+        for (const sequence_element& elem : entry.m_sequence) {
+            if (((offset) region_offset) - ((offset) entry.m_trigger_offset)
+                    == elem.m_offset) {
+                commit_to_pst(tag);
+                break;
+            }
+        }
+    }
 }
 
 bool sms::is_trigger_access(address address) {
