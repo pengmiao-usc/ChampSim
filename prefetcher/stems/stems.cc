@@ -77,7 +77,7 @@ stems_prefetcher::stems_prefetcher(CACHE* l1d) :
     {
         PACKET packet;
         packet.full_addr = a;
-        packet.redirect_to_svb = true;
+        packet.svb = true;
         packet.event_cycle = current_core_cycle[m_l1d->cpu];
         packet.extra_tag = 1;
         fill_svb(&packet);
@@ -314,6 +314,7 @@ void stems_prefetcher::read_dram(address address, stream_queue_id origin) {
     pf_packet.ip = 0;
     pf_packet.type = PREFETCH;
     pf_packet.event_cycle = current_core_cycle[m_l1d->cpu];
+    pf_packet.svb = true;
     pf_packet.redirect_to_svb = true;
     pf_packet.extra_tag = origin;
 
@@ -326,7 +327,7 @@ void stems_prefetcher::read_dram(address address, stream_queue_id origin) {
 }
 
 void stems_prefetcher::fill_svb(PACKET* packet) {
-    if (packet->redirect_to_svb) {
+    if (packet->svb) {
         m_stats["svb-fills"]++;
         m_svb.push_front(svb_entry(packet, packet->extra_tag));
     }

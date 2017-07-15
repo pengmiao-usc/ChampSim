@@ -26,16 +26,16 @@ void CACHE::handle_fill()
         else
             way = find_victim(fill_cpu, MSHR.entry[mshr_index].instr_id, set, block[set], MSHR.entry[mshr_index].ip, MSHR.entry[mshr_index].full_addr, MSHR.entry[mshr_index].type);
 
+        if ((MSHR.entry[mshr_index].fill_level >= fill_level) && MSHR.entry[mshr_index].svb) {
+            fill_svb(&MSHR.entry[mshr_index]);
+        }
+
         {
-            bool bypass = (cache_type == IS_L2C) && MSHR.entry[mshr_index].redirect_to_svb;
+            bool bypass = MSHR.entry[mshr_index].redirect_to_svb;
 #ifdef LLC_BYPASS
             bypass = bypass || ((cache_type == IS_LLC) && (way == LLC_WAY));
 #endif
-            if (bypass) { // this is a bypass that does not fill the LLC or is intended for some prefetchers' SVBs
-
-                if ((cache_type == IS_L2C) && MSHR.entry[mshr_index].redirect_to_svb) {
-                    fill_svb(&MSHR.entry[mshr_index]);
-                }
+            if (bypass) { // this is a bypass that does not fill the LLC or is intended for the SVB (included in some prefetchers)
 
                 // update replacement policy
                 if (cache_type == IS_LLC) {
@@ -786,6 +786,13 @@ void CACHE::handle_prefetch()
                         // update fill_level
                         if (PQ.entry[index].fill_level < MSHR.entry[mshr_index].fill_level)
                             MSHR.entry[mshr_index].fill_level = PQ.entry[index].fill_level;
+
+                        // Also update if SVB access.
+                        if (PQ.entry[index].svb) {
+                            MSHR.entry[mshr_index].svb = true;
+                            MSHR.entry[mshr_index].redirect_to_svb = false;
+                            MSHR.entry[mshr_index].extra_tag = PQ.entry[index].extra_tag;
+                        }
 
                         MSHR_MERGED[PQ.entry[index].type]++;
 

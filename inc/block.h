@@ -104,7 +104,7 @@ class PACKET {
              ip, 
              event_cycle;
 
-    bool redirect_to_svb;
+    bool svb, redirect_to_svb;
     unsigned int extra_tag;
 
     PACKET() { // @suppress("Class members should be properly initialized")
@@ -153,6 +153,7 @@ class PACKET {
         ip = 0;
         event_cycle = UINT64_MAX;
 
+        svb = false;
         redirect_to_svb = false;
         extra_tag = 0;
     };
