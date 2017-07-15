@@ -29,6 +29,8 @@ stems_prefetcher* g_prefetcher_for_cpu[NUM_CPUS];
 }
 
 void CACHE::l1d_prefetcher_initialize() {
+    // No good place to delete this without modifying the CACHE destructor specifically for STeMS.
+    // Lifetime is the end of the program and will be deallocated anyway when the program ends, so do not delete explicitly.
     g_prefetcher_for_cpu[cpu] = new stems_prefetcher(this);
     cout << "CPU " << cpu << " L1D STeMS prefetcher" << endl;
 }
@@ -46,12 +48,11 @@ void CACHE::l1d_prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way,
 }
 
 void CACHE::l1d_prefetcher_final_stats() {
-    for (pair<string, stat> pair : g_prefetcher_for_cpu[cpu]->stats()) {
+    cout << "===L1D PREFETCHER FINAL STATS===" << endl;
+    for (const pair<string, long long>& pair : g_prefetcher_for_cpu[cpu]->stats()) {
         cout << pair.first << "=" << pair.second << endl;
     }
-    // This is the final call to this prefetcher (as indicated by the name of the method).
-    // We should delete the heap-allocated prefetcher object for this CPU now.
-    delete g_prefetcher_for_cpu[cpu];
+    cout << "===END L1D PREFETCHER FINAL STATS===" << endl;
 }
 
 void CACHE::inform_eviction(uint64_t address) {
