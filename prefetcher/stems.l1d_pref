@@ -1,20 +1,21 @@
 /*
  * This file serves as the interface between the ChampSim cache system and the
- * object-oriented implementation of SMS. See the "sms" directory for the
+ * object-oriented implementation of STeMS. See the "stems" directory for the
  * actual implementation and all supporting files.
  *
- * The reason this file exists is to expose the SMS prefetcher as an option
+ * The reason this file exists is to expose the STeMS prefetcher as an option
  * in the build_champsim.sh script and also provide greater modularity in the
- * actual code.
+ * actual stems_prefetcher code.
  *
- * File author: Arka Majumdar
+ * Implementation author: Arka Majumdar
  */
 
-#include "sms/sms.h"
+#include "stems/stems.h"
 
 #include "cache.h"
 
 using namespace std;
+using namespace stems;
 
 /*
  * Create an anonymous namespace so there are no naming conflicts between
@@ -24,22 +25,19 @@ namespace {
 /*
  * Maintain one stems_prefetcher per CPU.
  */
-SMS_prefetcher_t* g_prefetcher_for_cpu[NUM_CPUS];
+stems_prefetcher* g_prefetcher_for_cpu[NUM_CPUS];
 }
 
 void CACHE::l1d_prefetcher_initialize() {
-    // No good place to delete this without modifying the CACHE destructor specifically for SMS.
+    // No good place to delete this without modifying the CACHE destructor specifically for STeMS.
     // Lifetime is the end of the program and will be deallocated anyway when the program ends, so do not delete explicitly.
-    g_prefetcher_for_cpu[cpu] = new SMS_prefetcher_t([this] (uint64_t pc, uint64_t base_addr, uint64_t addr, int delay) -> bool {
-        // TODO Delay?
-        return (prefetch_line(pc, base_addr, addr, FILL_L1) != 0) ? true : false;
-    });
-    cout << "CPU " << cpu << " L1D SMS prefetcher" << endl;
+    g_prefetcher_for_cpu[cpu] = new stems_prefetcher(this);
+    cout << "CPU " << cpu << " L1D STeMS prefetcher" << endl;
 }
 
 void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip,
         uint8_t cache_hit, uint8_t type) {
-    g_prefetcher_for_cpu[cpu]->IssuePrefetchCandidates(ip, addr, false, cache_hit == 1);
+    g_prefetcher_for_cpu[cpu]->operate(addr, ip, cache_hit == 1, type);
 }
 
 void CACHE::l1d_prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way,
@@ -51,18 +49,20 @@ void CACHE::l1d_prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way,
 
 void CACHE::l1d_prefetcher_final_stats() {
     cout << "===L1D PREFETCHER FINAL STATS===" << endl;
-    for (const pair<string, long long>& pair : g_prefetcher_for_cpu[cpu]->theStats.theCounters) {
+    for (const pair<string, long long>& pair : g_prefetcher_for_cpu[cpu]->stats()) {
         cout << pair.first << "=" << pair.second << endl;
     }
     cout << "===END L1D PREFETCHER FINAL STATS===" << endl;
 }
 
 void CACHE::inform_eviction(uint64_t address) {
+    g_prefetcher_for_cpu[cpu]->inform_eviction(address);
 }
 
 bool CACHE::access_svb(uint8_t type, PACKET* packet) {
-    return false;
+    return g_prefetcher_for_cpu[cpu]->access_svb(type, packet);
 }
 
 void CACHE::fill_svb(PACKET* packet) {
+    g_prefetcher_for_cpu[cpu]->fill_svb(packet);
 }

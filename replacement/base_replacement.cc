@@ -6,6 +6,8 @@ uint32_t CACHE::find_victim(uint32_t cpu, uint64_t instr_id, uint32_t set, const
     uint32_t way = lru_victim(cpu, instr_id, set, current_set, ip, full_addr, type);
     if (cache_type == IS_DTLB) {
         inform_tlb_eviction(full_addr, way);
+    } else if (cache_type == IS_L1D) {
+        inform_eviction(full_addr);
     }
     return way;
 }

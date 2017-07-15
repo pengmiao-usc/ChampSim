@@ -221,6 +221,12 @@ class CACHE : public MEMORY { // @suppress("Class has a virtual method and non-v
     void inform_branch(uint64_t ip, uint8_t taken);
 
     void inform_tlb_eviction(uint64_t inserted_page_addr, uint32_t way);
+
+    void inform_eviction(uint64_t address);
+
+    bool access_svb(uint8_t type, PACKET* packet);
+
+    void fill_svb(PACKET* packet);
 };
 
 #endif
