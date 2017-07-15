@@ -59,12 +59,12 @@ stems_prefetcher::stems_prefetcher(CACHE* l1d) :
     /*
      * Testing SMS AGT -> PST behavior.
      */
-    inform_eviction(a + 2);
+    inform_eviction(a);
     inform_eviction(b);
-    inform_eviction(c + 1);
+    inform_eviction(c);
     inform_eviction(d);
     /*
-     * Testing example from STeMS paper, Fig. 5.
+     * Testing reconstruction example from STeMS paper, Fig. 5.
      */
     operate(a, 1, false, LOAD);
     /*
@@ -77,6 +77,10 @@ stems_prefetcher::stems_prefetcher(CACHE* l1d) :
     {
         PACKET packet;
         packet.full_addr = a;
+        packet.redirect_to_svb = true;
+        packet.event_cycle = current_core_cycle[m_l1d->cpu];
+        packet.extra_tag = 1;
+        fill_svb(&packet);
         access_svb(LOAD, &packet);
     }
     /*
