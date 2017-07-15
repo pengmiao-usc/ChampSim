@@ -61,3 +61,7 @@ void CACHE::inform_eviction(uint64_t address) {
 bool CACHE::access_svb(uint8_t type, PACKET* packet) {
     return g_prefetcher_for_cpu[cpu]->access_svb(type, packet);
 }
+
+void CACHE::fill_svb(PACKET* packet) {
+    g_prefetcher_for_cpu[cpu]->fill_svb(packet);
+}

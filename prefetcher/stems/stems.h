@@ -35,6 +35,8 @@ public:
 
     bool access_svb(cache_access_type type, PACKET* packet);
 
+    void fill_svb(PACKET* packet);
+
     const std::map<std::string, stat>& stats() const;
 
 private:
@@ -55,9 +57,6 @@ private:
     stream_queue::size_type m_reconstruction_resume_threshold;
 
     svb m_svb;
-
-    void fetch_to_svb(address address, stream_queue_id origin,
-            bool unlock_cache_cntlr);
 
     void move_reconstruction_to_queue(stream_queue& queue);
 
@@ -81,7 +80,7 @@ private:
      */
     void reconstruct(address trigger_address, const sms::sequence& sequence);
 
-    PACKET* read_dram(address address);
+    void read_dram(address address, stream_queue_id origin);
 };
 
 }

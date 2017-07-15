@@ -225,6 +225,8 @@ class CACHE : public MEMORY { // @suppress("Class has a virtual method and non-v
     void inform_eviction(uint64_t address);
 
     bool access_svb(uint8_t type, PACKET* packet);
+
+    void fill_svb(PACKET* packet);
 };
 
 #endif

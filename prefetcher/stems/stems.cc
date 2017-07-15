@@ -165,7 +165,7 @@ void stems_prefetcher::operate(address current_address, pc pc, bool cache_hit,
                     - m_svb.m_const_current_lookahead.find(pair.first)->second;
         }
         for (svb::size_type i = 0; i < num_fetch && !queue.empty(); i++) {
-            fetch_to_svb(queue.front(), pair.first, true);
+            read_dram(queue.front(), pair.first);
             queue.pop_front();
         }
     }
@@ -185,7 +185,9 @@ void stems_prefetcher::operate(address current_address, pc pc, bool cache_hit,
 bool stems_prefetcher::access_svb(cache_access_type type, PACKET* packet) {
     m_stats["access_svb-receieved"]++;
     for (svb::iterator it = m_svb.begin(); it != m_svb.end();) {
-        if (it->m_packet->full_addr == packet->full_addr) {
+        if (it->m_packet->full_addr == packet->full_addr
+                && it->m_packet->event_cycle
+                        <= current_core_cycle[m_l1d->cpu]) {
             m_stats["svb-hits"]++;
             switch (type) {
             case LOAD: {
@@ -231,11 +233,6 @@ void stems_prefetcher::inform_eviction(address address) {
     m_stats["evictions-received"]++;
     // Pass on to the spatial part.
     m_spatial_prefetcher.inform_eviction(address);
-}
-
-void stems_prefetcher::fetch_to_svb(address address, stream_queue_id origin,
-        bool unlock_cache_cntlr) {
-    m_svb.push_front(svb_entry(read_dram(address), origin));
 }
 
 void stems_prefetcher::move_reconstruction_to_queue(stream_queue& queue) {
@@ -302,27 +299,33 @@ void stems_prefetcher::reconstruct(address trigger_address,
     m_stats["reconstructions"]++;
 }
 
-// Idealized: timeliness is not taken into account (0 DRAM latency when fetched from prefetcher).
-PACKET* stems_prefetcher::read_dram(address address) {
-    // Idealization
-    latency latency = 0;
-
+void stems_prefetcher::read_dram(address address, stream_queue_id origin) {
     m_l1d->pf_requested++;
 
-    PACKET* pf_packet = new PACKET();
-    pf_packet->fill_level = FILL_L1;
-    pf_packet->cpu = m_l1d->cpu;
-    pf_packet->address = address >> LOG2_BLOCK_SIZE;
-    pf_packet->full_addr = address;
-    pf_packet->ip = 0;
-    pf_packet->type = PREFETCH;
-    pf_packet->event_cycle = current_core_cycle[m_l1d->cpu] + latency;
+    PACKET pf_packet;
+    pf_packet.fill_level = FILL_L2;
+    pf_packet.cpu = m_l1d->cpu;
+    pf_packet.address = address >> LOG2_BLOCK_SIZE;
+    pf_packet.full_addr = address;
+    pf_packet.ip = 0;
+    pf_packet.type = PREFETCH;
+    pf_packet.event_cycle = current_core_cycle[m_l1d->cpu];
+    pf_packet.redirect_to_svb = true;
+    pf_packet.extra_tag = origin;
+
+    // add_pq will copy pf_packet, so pf_packet can safely be automatically destroyed at the end of this function.
+    m_l1d->add_pq(&pf_packet);
 
     m_l1d->pf_issued++;
 
     m_stats["dram-reads"]++;
+}
 
-    return pf_packet;
+void stems_prefetcher::fill_svb(PACKET* packet) {
+    if (packet->redirect_to_svb) {
+        m_stats["svb-fills"]++;
+        m_svb.push_front(svb_entry(packet, packet->extra_tag));
+    }
 }
 
 const map<string, stat>& stems_prefetcher::stats() const {

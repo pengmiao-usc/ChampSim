@@ -34,8 +34,6 @@ using stat = uint64_t;
 
 using stream_queue_id = unsigned int;
 
-using latency = uint32_t;
-
 }
 
 #endif

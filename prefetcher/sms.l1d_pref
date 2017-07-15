@@ -55,3 +55,13 @@ void CACHE::l1d_prefetcher_final_stats() {
     }
     cout << "===END L1D PREFETCHER FINAL STATS===" << endl;
 }
+
+void CACHE::inform_eviction(uint64_t address) {
+}
+
+bool CACHE::access_svb(uint8_t type, PACKET* packet) {
+    return false;
+}
+
+void CACHE::fill_svb(PACKET* packet) {
+}

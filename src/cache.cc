@@ -26,38 +26,46 @@ void CACHE::handle_fill()
         else
             way = find_victim(fill_cpu, MSHR.entry[mshr_index].instr_id, set, block[set], MSHR.entry[mshr_index].ip, MSHR.entry[mshr_index].full_addr, MSHR.entry[mshr_index].type);
 
+        {
+            bool bypass = (cache_type == IS_L2C) && MSHR.entry[mshr_index].redirect_to_svb;
 #ifdef LLC_BYPASS
-        if ((cache_type == IS_LLC) && (way == LLC_WAY)) { // this is a bypass that does not fill the LLC
-
-            // update replacement policy
-            if (cache_type == IS_LLC) {
-                llc_update_replacement_state(fill_cpu, set, way, MSHR.entry[mshr_index].full_addr, MSHR.entry[mshr_index].ip, 0, MSHR.entry[mshr_index].type, 0);
-
-            }
-            else
-                update_replacement_state(fill_cpu, set, way, MSHR.entry[mshr_index].full_addr, MSHR.entry[mshr_index].ip, 0, MSHR.entry[mshr_index].type, 0);
-
-            // COLLECT STATS
-            sim_miss[fill_cpu][MSHR.entry[mshr_index].type]++;
-            sim_access[fill_cpu][MSHR.entry[mshr_index].type]++;
-
-            // check fill level
-            if (MSHR.entry[mshr_index].fill_level < fill_level) {
-
-                if (MSHR.entry[mshr_index].instruction) 
-                    upper_level_icache[fill_cpu]->return_data(&MSHR.entry[mshr_index]);
-                else // data
-                    upper_level_dcache[fill_cpu]->return_data(&MSHR.entry[mshr_index]);
-            }
-
-            MSHR.remove_queue(&MSHR.entry[mshr_index]);
-            MSHR.num_returned--;
-
-            update_fill_cycle();
-
-            return; // return here, no need to process further in this function
-        }
+            bypass = bypass || ((cache_type == IS_LLC) && (way == LLC_WAY));
 #endif
+            if (bypass) { // this is a bypass that does not fill the LLC or is intended for some prefetchers' SVBs
+
+                if ((cache_type == IS_L2C) && MSHR.entry[mshr_index].redirect_to_svb) {
+                    fill_svb(&MSHR.entry[mshr_index]);
+                }
+
+                // update replacement policy
+                if (cache_type == IS_LLC) {
+                    llc_update_replacement_state(fill_cpu, set, way, MSHR.entry[mshr_index].full_addr, MSHR.entry[mshr_index].ip, 0, MSHR.entry[mshr_index].type, 0);
+
+                }
+                else
+                    update_replacement_state(fill_cpu, set, way, MSHR.entry[mshr_index].full_addr, MSHR.entry[mshr_index].ip, 0, MSHR.entry[mshr_index].type, 0);
+
+                // COLLECT STATS
+                sim_miss[fill_cpu][MSHR.entry[mshr_index].type]++;
+                sim_access[fill_cpu][MSHR.entry[mshr_index].type]++;
+
+                // check fill level
+                if (MSHR.entry[mshr_index].fill_level < fill_level) {
+
+                    if (MSHR.entry[mshr_index].instruction)
+                        upper_level_icache[fill_cpu]->return_data(&MSHR.entry[mshr_index]);
+                    else // data
+                        upper_level_dcache[fill_cpu]->return_data(&MSHR.entry[mshr_index]);
+                }
+
+                MSHR.remove_queue(&MSHR.entry[mshr_index]);
+                MSHR.num_returned--;
+
+                update_fill_cycle();
+
+                return; // return here, no need to process further in this function
+            }
+        }
 
         uint8_t  do_fill = 1;
 
