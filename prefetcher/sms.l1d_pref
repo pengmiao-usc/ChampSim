@@ -34,6 +34,7 @@ void CACHE::l1d_prefetcher_initialize() {
         // TODO Delay?
         return (prefetch_line(pc, base_addr, addr, FILL_L1) != 0) ? true : false;
     });
+    cout << "CPU " << cpu << " L1D SMS prefetcher" << endl;
 }
 
 void CACHE::l1d_prefetcher_operate(uint64_t addr, uint64_t ip,
