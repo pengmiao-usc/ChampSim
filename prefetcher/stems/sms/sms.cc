@@ -63,11 +63,16 @@ void sms::inform_eviction(address address) {
     agt::const_iterator it = m_agt.find(tag); // find the address in the AGT
     if (it != m_agt.end()) {
         const generation& entry = it->second;
+        if (entry.m_trigger_offset == region_offset) {
+            // Also commit if the trigger was evicted.
+            commit_to_pst(tag);
+            return;
+        }
         for (const sequence_element& elem : entry.m_sequence) {
             if (((offset) region_offset) - ((offset) entry.m_trigger_offset)
                     == elem.m_offset) {
                 commit_to_pst(tag);
-                break;
+                return;
             }
         }
     }
