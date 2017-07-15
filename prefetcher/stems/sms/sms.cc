@@ -17,12 +17,13 @@ sms::sms(address spatial_region_size, pst::size_type pst_size,
 }
 
 void sms::commit_to_pst(spatial_region_tag tag) {
-    m_stats["pst-commits"]++;
+    m_stats["pst-commit-attempts"]++;
     agt::iterator it = m_agt.find(tag); // find the address in the AGT
     if (it != m_agt.end()) {
         generation& entry = it->second;
         // the spatial region exists in the AGT
         if (!entry.m_sequence.empty()) { // make sure it's not just the trigger sequence
+            m_stats["pst-commits"]++;
             m_pst[construct_pc_offset_tag(entry.m_trigger_pc,
                     entry.m_trigger_offset)] = std::move(entry.m_sequence); // move the sequence to the PST
         }
