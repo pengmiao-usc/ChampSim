@@ -104,6 +104,9 @@ class PACKET {
              ip, 
              event_cycle;
 
+    bool svb, redirect_to_svb;
+    unsigned int extra_tag;
+
     PACKET() { // @suppress("Class members should be properly initialized")
         instruction = 0;
         tlb_access = 0;
@@ -149,6 +152,10 @@ class PACKET {
         instr_id = 0;
         ip = 0;
         event_cycle = UINT64_MAX;
+
+        svb = false;
+        redirect_to_svb = false;
+        extra_tag = 0;
     };
 };
 

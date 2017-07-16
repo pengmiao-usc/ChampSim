@@ -70,6 +70,7 @@ cp replacement/${LLC_REPLACEMENT}.llc_repl replacement/llc_replacement.cc
 # Build
 mkdir -p bin
 rm -f bin/champsim
+make clean
 make -j
 
 # Sanity check
@@ -97,7 +98,7 @@ sed -i.bak 's/\<NUM_CPUS '${NUM_CORE}'\>/NUM_CPUS 1/g' inc/champsim.h
 sed -i.bak 's/\<DRAM_CHANNELS 2\>/DRAM_CHANNELS 1/g' inc/champsim.h
 sed -i.bak 's/\<DRAM_CHANNELS_LOG2 1\>/DRAM_CHANNELS_LOG2 0/g' inc/champsim.h
 
-cp branch/bimodal.bpred branch/branch_predictor.cc
-cp prefetcher/no.l1d_pref prefetcher/l1d_prefetcher.cc
-cp prefetcher/no.l2c_pref prefetcher/l2c_prefetcher.cc
-cp replacement/lru.llc_repl replacement/llc_replacement.cc
+#cp branch/bimodal.bpred branch/branch_predictor.cc
+#cp prefetcher/no.l1d_pref prefetcher/l1d_prefetcher.cc
+#cp prefetcher/no.l2c_pref prefetcher/l2c_prefetcher.cc
+#cp replacement/lru.llc_repl replacement/llc_replacement.cc

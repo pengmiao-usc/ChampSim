@@ -26,38 +26,46 @@ void CACHE::handle_fill()
         else
             way = find_victim(fill_cpu, MSHR.entry[mshr_index].instr_id, set, block[set], MSHR.entry[mshr_index].ip, MSHR.entry[mshr_index].full_addr, MSHR.entry[mshr_index].type);
 
-#ifdef LLC_BYPASS
-        if ((cache_type == IS_LLC) && (way == LLC_WAY)) { // this is a bypass that does not fill the LLC
-
-            // update replacement policy
-            if (cache_type == IS_LLC) {
-                llc_update_replacement_state(fill_cpu, set, way, MSHR.entry[mshr_index].full_addr, MSHR.entry[mshr_index].ip, 0, MSHR.entry[mshr_index].type, 0);
-
-            }
-            else
-                update_replacement_state(fill_cpu, set, way, MSHR.entry[mshr_index].full_addr, MSHR.entry[mshr_index].ip, 0, MSHR.entry[mshr_index].type, 0);
-
-            // COLLECT STATS
-            sim_miss[fill_cpu][MSHR.entry[mshr_index].type]++;
-            sim_access[fill_cpu][MSHR.entry[mshr_index].type]++;
-
-            // check fill level
-            if (MSHR.entry[mshr_index].fill_level < fill_level) {
-
-                if (MSHR.entry[mshr_index].instruction) 
-                    upper_level_icache[fill_cpu]->return_data(&MSHR.entry[mshr_index]);
-                else // data
-                    upper_level_dcache[fill_cpu]->return_data(&MSHR.entry[mshr_index]);
-            }
-
-            MSHR.remove_queue(&MSHR.entry[mshr_index]);
-            MSHR.num_returned--;
-
-            update_fill_cycle();
-
-            return; // return here, no need to process further in this function
+        if ((MSHR.entry[mshr_index].fill_level >= fill_level) && MSHR.entry[mshr_index].svb) {
+            fill_svb(&MSHR.entry[mshr_index]);
         }
+
+        {
+            bool bypass = MSHR.entry[mshr_index].redirect_to_svb;
+#ifdef LLC_BYPASS
+            bypass = bypass || ((cache_type == IS_LLC) && (way == LLC_WAY));
 #endif
+            if (bypass) { // this is a bypass that does not fill the LLC or is intended for the SVB (included in some prefetchers)
+
+                // update replacement policy
+                if (cache_type == IS_LLC) {
+                    llc_update_replacement_state(fill_cpu, set, way, MSHR.entry[mshr_index].full_addr, MSHR.entry[mshr_index].ip, 0, MSHR.entry[mshr_index].type, 0);
+
+                }
+                else
+                    update_replacement_state(fill_cpu, set, way, MSHR.entry[mshr_index].full_addr, MSHR.entry[mshr_index].ip, 0, MSHR.entry[mshr_index].type, 0);
+
+                // COLLECT STATS
+                sim_miss[fill_cpu][MSHR.entry[mshr_index].type]++;
+                sim_access[fill_cpu][MSHR.entry[mshr_index].type]++;
+
+                // check fill level
+                if (MSHR.entry[mshr_index].fill_level < fill_level) {
+
+                    if (MSHR.entry[mshr_index].instruction)
+                        upper_level_icache[fill_cpu]->return_data(&MSHR.entry[mshr_index]);
+                    else // data
+                        upper_level_dcache[fill_cpu]->return_data(&MSHR.entry[mshr_index]);
+                }
+
+                MSHR.remove_queue(&MSHR.entry[mshr_index]);
+                MSHR.num_returned--;
+
+                update_fill_cycle();
+
+                return; // return here, no need to process further in this function
+            }
+        }
 
         uint8_t  do_fill = 1;
 
@@ -182,7 +190,11 @@ void CACHE::handle_writeback()
         // access cache
         uint32_t set = get_set(WQ.entry[index].address);
         int way = check_hit(&WQ.entry[index]);
-        
+
+        if (cache_type == IS_L2C) {
+            access_svb(WRITEBACK, &WQ.entry[index]);
+        }
+
         if (way >= 0) { // writeback hit (or RFO hit for L1D)
 
             if (cache_type == IS_LLC) {
@@ -413,8 +425,17 @@ void CACHE::handle_read()
             // access cache
             uint32_t set = get_set(RQ.entry[index].address);
             int way = check_hit(&RQ.entry[index]);
-            
-            if (way >= 0) { // read hit
+
+            // If the cache is L2, scan the SVB in parallel.
+            bool svb_hit = (cache_type == IS_L2C) && access_svb(LOAD, &RQ.entry[index]);
+
+            if (way >= 0) {
+                // If there is a hit in the cache directly, always prefer the cache over the SVB.
+                // However, access_svb must always be called when scanning the L2 to train the prefetcher.
+                svb_hit = false;
+            }
+
+            if (way >= 0 || svb_hit) { // read hit
 
                 if (cache_type == IS_ITLB) {
                     RQ.entry[index].instruction_pa = block[set][way].data;
@@ -440,23 +461,40 @@ void CACHE::handle_read()
 
                 // update prefetcher on load instruction
                 if (RQ.entry[index].type == LOAD) {
-                    if (cache_type == IS_L1D) 
-                        l1d_prefetcher_operate(block[set][way].full_addr, RQ.entry[index].ip, 1, RQ.entry[index].type);
-                    else if (cache_type == IS_L2C)
-                        l2c_prefetcher_operate(block[set][way].full_addr, RQ.entry[index].ip, 1, RQ.entry[index].type);
+                    if (!svb_hit) {
+                        if (cache_type == IS_L1D)
+                            l1d_prefetcher_operate(block[set][way].full_addr, RQ.entry[index].ip, 1, RQ.entry[index].type);
+                        else if (cache_type == IS_L2C)
+                            l2c_prefetcher_operate(block[set][way].full_addr, RQ.entry[index].ip, 1, RQ.entry[index].type);
+                    } else {
+                        assert(cache_type == IS_L2C);
+                        l2c_prefetcher_operate(RQ.entry[index].full_addr, RQ.entry[index].ip, 1, RQ.entry[index].type);
+                    }
                 }
 
-                // update replacement policy
-                if (cache_type == IS_LLC) {
-                    llc_update_replacement_state(read_cpu, set, way, block[set][way].full_addr, RQ.entry[index].ip, 0, RQ.entry[index].type, 1);
-
+                if (!svb_hit) {
+                    // update replacement policy
+                    if (cache_type == IS_LLC) {
+                        llc_update_replacement_state(read_cpu, set, way, block[set][way].full_addr, RQ.entry[index].ip, 0, RQ.entry[index].type, 1);
+                    }
+                    else
+                        update_replacement_state(read_cpu, set, way, block[set][way].full_addr, RQ.entry[index].ip, 0, RQ.entry[index].type, 1);
                 }
-                else
-                    update_replacement_state(read_cpu, set, way, block[set][way].full_addr, RQ.entry[index].ip, 0, RQ.entry[index].type, 1);
 
                 // COLLECT STATS
                 sim_hit[read_cpu][RQ.entry[index].type]++;
                 sim_access[read_cpu][RQ.entry[index].type]++;
+
+                if (!svb_hit) {
+                    // update prefetch stats and reset prefetch bit
+                    if (block[set][way].prefetch) {
+                        pf_useful++;
+                        block[set][way].prefetch = 0;
+                    }
+                    block[set][way].used = 1;
+                } else {
+                    pf_useful++;
+                }
 
                 // check fill level
                 if (RQ.entry[index].fill_level < fill_level) {
@@ -466,13 +504,6 @@ void CACHE::handle_read()
                     else // data
                         upper_level_dcache[read_cpu]->return_data(&RQ.entry[index]);
                 }
-
-                // update prefetch stats and reset prefetch bit
-                if (block[set][way].prefetch) {
-                    pf_useful++;
-                    block[set][way].prefetch = 0;
-                }
-                block[set][way].used = 1;
 
                 HIT[RQ.entry[index].type]++;
                 ACCESS[RQ.entry[index].type]++;
@@ -756,6 +787,13 @@ void CACHE::handle_prefetch()
                         if (PQ.entry[index].fill_level < MSHR.entry[mshr_index].fill_level)
                             MSHR.entry[mshr_index].fill_level = PQ.entry[index].fill_level;
 
+                        // Also update if SVB access.
+                        if (PQ.entry[index].svb) {
+                            MSHR.entry[mshr_index].svb = true;
+                            MSHR.entry[mshr_index].redirect_to_svb = false;
+                            MSHR.entry[mshr_index].extra_tag = PQ.entry[index].extra_tag;
+                        }
+
                         MSHR_MERGED[PQ.entry[index].type]++;
 
                         DP ( if (warmup_complete[prefetch_cpu]) {
@@ -927,7 +965,7 @@ int CACHE::invalidate_entry(uint64_t inval_addr)
 
 int CACHE::add_rq(PACKET *packet)
 {
-    // check for the latest wirtebacks in the write queue
+    // check for the latest writebacks in the write queue
     int wq_index = WQ.check_queue(packet);
     if (wq_index != -1) {
         
@@ -1174,7 +1212,7 @@ int CACHE::kpc_prefetch_line(uint64_t base_addr, uint64_t pf_addr, int fill_leve
 
 int CACHE::add_pq(PACKET *packet)
 {
-    // check for the latest wirtebacks in the write queue
+    // check for the latest writebacks in the write queue
     int wq_index = WQ.check_queue(packet);
     if (wq_index != -1) {
         

@@ -276,10 +276,9 @@ void O3_CPU::handle_branch()
 
                         last_branch_result(arch_instr.ip, arch_instr.branch_taken);
 
-                    // Inform the L1D and L2C caches that a branch has occurred so that their prefetchers can (depending on the prefetch algorithm) use the information to enhance their prediction.
-                    for (CACHE cache : { L1D, L2C }) {
-                        cache.inform_branch(arch_instr.ip, arch_instr.branch_taken);
-                    }
+                        // Inform the L1D and L2C caches that a branch has occurred so that their prefetchers can (depending on the prefetch algorithm) use the information to enhance their prediction.
+                        L1D.inform_branch(arch_instr.ip, arch_instr.branch_taken);
+                        L2C.inform_branch(arch_instr.ip, arch_instr.branch_taken);
                     }
 
                     //if ((num_reads == FETCH_WIDTH) || (ROB.occupancy == ROB.SIZE))
@@ -998,8 +997,9 @@ void O3_CPU::add_load_queue(uint32_t rob_index, uint32_t data_index)
 
             release_load_queue(lq_index);
         }
-        else
-            ; // store is not executed yet, forwarding will be handled by execute_store()
+        else {
+            // store is not executed yet, forwarding will be handled by execute_store()
+        }
     }
 
     // succesfully added to the load queue
