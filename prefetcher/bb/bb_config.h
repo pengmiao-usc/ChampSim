@@ -12,11 +12,11 @@
 #include "../../inc/champsim.h"
 
 #ifndef BB_SPATIAL_NUM_BEFORE
-#define BB_SPATIAL_NUM_BEFORE 5
+#define BB_SPATIAL_NUM_BEFORE 16
 #endif
 
 #ifndef BB_SPATIAL_NUM_AFTER
-#define BB_SPATIAL_NUM_AFTER 5
+#define BB_SPATIAL_NUM_AFTER 16
 #endif
 
 #ifndef BB_GHB_SIZE
@@ -24,5 +24,5 @@
 #endif
 
 #ifndef BB_DEGREE
-#define BB_DEGREE 3
+#define BB_DEGREE 8
 #endif
