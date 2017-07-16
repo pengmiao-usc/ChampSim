@@ -49,9 +49,11 @@ void CACHE::l2c_prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way,
 }
 
 void CACHE::l2c_prefetcher_final_stats() {
+    cout << "===L2C PREFETCHER FINAL STATS===" << endl;
     for (const pair<string, stat>& pair : g_prefetcher_for_cpu[cpu]->stats()) {
         cout << pair.first << "=" << pair.second << endl;
     }
+    cout << "===END L2C PREFETCHER FINAL STATS===" << endl;
 }
 
 void CACHE::inform_branch(uint64_t ip, uint8_t taken) {
