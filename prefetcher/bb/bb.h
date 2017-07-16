@@ -19,7 +19,8 @@ class bb_prefetcher {
 public:
     bb_prefetcher(prefetch_line_func prefetch_line);
 
-    void operate(address address, pc pc, bool cache_hit, cache_access_type type);
+    void operate(address address, pc pc, bool cache_hit,
+            cache_access_type type);
 
     void inform_branch(bool branch_taken);
 
@@ -44,8 +45,7 @@ private:
 
     prefetch_line_func m_prefetch_line;
 
-    index_table& index_table_for(
-            bool branch_taken);
+    index_table& index_table_for(bool branch_taken);
 };
 
 }
