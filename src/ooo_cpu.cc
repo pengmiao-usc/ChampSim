@@ -997,8 +997,9 @@ void O3_CPU::add_load_queue(uint32_t rob_index, uint32_t data_index)
 
             release_load_queue(lq_index);
         }
-        else
-            ; // store is not executed yet, forwarding will be handled by execute_store()
+        else {
+            // store is not executed yet, forwarding will be handled by execute_store()
+        }
     }
 
     // succesfully added to the load queue
