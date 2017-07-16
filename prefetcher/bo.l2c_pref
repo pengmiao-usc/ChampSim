@@ -1,8 +1,15 @@
-// TODO Prefetcher from DPC2
+/*
+ * Implementation of the Best-Offset (BO) Prefetcher.
+ *
+ * Originally written for The 2nd Data Prefetching Championship (DPC2) by Pierre Michaud at Inria.
+ *
+ * Adapted for the ChampSim simulator: Arka Majumdar
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "inc/prefetcher.h"
+
+#include "cache.h"
 
 // Submission ID: 3
 
@@ -19,6 +26,8 @@
 // greater than 63. However, with pages larger than 4KB, it would be beneficial to consider
 // larger offsets.
 
+#define KNOB_SMALL_LLC false
+
 #define NOFFSETS 46
 int OFFSET[NOFFSETS] = {1,-1,2,-2,3,-3,4,-4,5,-5,6,-6,7,-7,8,-8,9,-9,10,-10,11,-11,12,-12,13,-13,14,-14,15,-15,16,-16,18,-18,20,-20,24,-24,30,-30,32,-32,36,-36,40,-40};
 #define DEFAULT_OFFSET 1
@@ -31,13 +40,13 @@ int OFFSET[NOFFSETS] = {1,-1,2,-2,3,-3,4,-4,5,-5,6,-6,7,-7,8,-8,9,-9,10,-10,11,-
 #define TIME_BITS 12
 #define LLC_RATE_MAX 255
 #define GAUGE_MAX 8191
-#define MSHR_THRESHOLD_MAX (L2_MSHR_COUNT-4)
+#define MSHR_THRESHOLD_MAX (L2C_MSHR_SIZE-4)
 #define MSHR_THRESHOLD_MIN 2
 #define LOW_SCORE 20
-#define BAD_SCORE ((knob_small_llc)? 10 : 1)
+#define BAD_SCORE ((KNOB_SMALL_LLC)? 10 : 1)
 #define BANDWIDTH ((knob_low_bandwidth)? 64 : 16)
 
-
+namespace bo {
 //######################################################################################
 //                               PREFETCHER STATE
 //######################################################################################
@@ -48,7 +57,7 @@ int prefetch_offset;   // 7 bits (6-bit value + 1 sign bit)
 int recent_request[2][1<<RRINDEX]; // 2x64x12 = 1536 bits
 
 // 1 prefetch bit per L2 cache line : 256x8 = 2048 bits
-int prefetch_bit[L2_SET_COUNT][L2_ASSOCIATIVITY];
+int prefetch_bit[L2C_SET][L2C_WAY];
 
 
 struct offsets_scores {
@@ -84,8 +93,6 @@ struct prefetch_throttle {
 //######################################################################################
 //                            SOME MACROS & DEFINITIONS
 //######################################################################################
-
-#define LOGLINE 6
 
 #define SAMEPAGE(lineaddr1,lineaddr2) ((((lineaddr1) ^ (lineaddr2)) >> 6) == 0)
 
@@ -180,7 +187,7 @@ void dq_init()
 }
 
 
-void dq_push(t_addr lineaddr)
+void dq_push(CACHE& l2c, t_addr lineaddr)
 {
   // enqueue one line address
   if (dq.valid[dq.tail]) {
@@ -190,20 +197,20 @@ void dq_push(t_addr lineaddr)
     INCREMENT(dq.head,DELAYQSIZE);
   }
   dq.lineaddr[dq.tail] = TRUNCATE(lineaddr,RRINDEX+RRTAG);
-  dq.cycle[dq.tail] = TRUNCATE(get_current_cycle(0),TIME_BITS);
+  dq.cycle[dq.tail] = TRUNCATE(current_core_cycle[l2c.cpu],TIME_BITS);
   dq.valid[dq.tail] = 1;
   INCREMENT(dq.tail,DELAYQSIZE);
 }
 
 
-int dq_ready()
+int dq_ready(CACHE& l2c)
 {
   // tells whether or not the oldest entry is ready to be dequeued
   if (! dq.valid[dq.head]) {
     // delay queue is empty
     return 0;
   }
-  int cycle = TRUNCATE(get_current_cycle(0),TIME_BITS);
+  int cycle = TRUNCATE(current_core_cycle[l2c.cpu],TIME_BITS);
   int issuecycle = dq.cycle[dq.head];
   int readycycle = TRUNCATE(issuecycle+DELAY,TIME_BITS);
   if (readycycle >= issuecycle) {
@@ -214,13 +221,13 @@ int dq_ready()
 }
 
 
-void dq_pop()
+void dq_pop(CACHE& l2c)
 {
   // dequeue the entries that are ready to be dequeued,
   // and do a write in the "left" bank of the RR table for each of them
   int i;
   for (i=0; i<DELAYQSIZE; i++) {
-    if (! dq_ready()) {
+    if (! dq_ready(l2c)) {
       break;
     }
     rr_insert_left(dq.lineaddr[dq.head]);
@@ -276,10 +283,10 @@ void pt_update_mshr_threshold()
 // The pt_llc_access function estimates the average time between consecutive LLC accesses.
 // It is called on every LLC access.
 
-void pt_llc_access()
+void pt_llc_access(CACHE& l2c)
 {
   // update the gauge
-  int cycle = TRUNCATE(get_current_cycle(0),TIME_BITS);
+  int cycle = TRUNCATE(current_core_cycle[l2c.cpu],TIME_BITS);
   int dt = TRUNCATE(cycle - pt.last_cycle,TIME_BITS);
   pt.last_cycle = cycle;
   pt.llc_rate_gauge += dt - pt.llc_rate;
@@ -370,38 +377,40 @@ void os_learn_best_offset(t_addr lineaddr)
 // Issue at most one prefetch request. The prefetch line address is obtained by adding
 // the prefetch offset to the current line address
 
-int issue_prefetch(t_addr lineaddr, int offset)
+int issue_prefetch(CACHE& l2c, t_addr lineaddr, int offset)
 {
   if (offset == 0) {
     // The prefetcher is currently turned off.
     // Just push the line address into the delay queue for best-offset learning.
-    dq_push(lineaddr);
+    dq_push(l2c, lineaddr);
     return 0;
   }
   if (! SAMEPAGE(lineaddr,lineaddr+offset)) {
     // crossing the page boundary, no prefetch request issued
     return 0;
   }
-  if (get_l2_mshr_occupancy(0) < pt.mshr_threshold) {
+  if (static_cast<int>(l2c.MSHR.occupancy) < pt.mshr_threshold) {
     // prefetch into L2
-    dq_push(lineaddr);
-    return l2_prefetch_line(0,lineaddr<<LOGLINE,(lineaddr+offset)<<LOGLINE,FILL_L2);
+    dq_push(l2c, lineaddr);
+    return l2c.prefetch_line(0,lineaddr<<LOG2_BLOCK_SIZE,(lineaddr+offset)<<LOG2_BLOCK_SIZE,FILL_L2);
   }
   // could not prefetch into L2
   // try to prefetch into LLC if prefetch accuracy not too bad
   if (pt.prefetch_score > LOW_SCORE) {
-    return l2_prefetch_line(0,lineaddr<<LOGLINE,(lineaddr+offset)<<LOGLINE,FILL_LLC);
+    return l2c.prefetch_line(0,lineaddr<<LOG2_BLOCK_SIZE,(lineaddr+offset)<<LOG2_BLOCK_SIZE,FILL_LLC);
   }
   return 0;
+}
 }
 
 
 //######################################################################################
-//                               DPC2 INTERFACE
+//                               ChampSim INTERFACE
 //######################################################################################
 
+using namespace bo;
 
-void l2_prefetcher_initialize(int cpu_num)
+void CACHE::l2c_prefetcher_initialize()
 {
   prefetch_offset = DEFAULT_OFFSET;
   rr_init();
@@ -409,47 +418,46 @@ void l2_prefetcher_initialize(int cpu_num)
   dq_init();
   pt_init();
   int i,j;
-  for (i=0; i<L2_SET_COUNT; i++) {
-    for (j=0; j<L2_ASSOCIATIVITY; j++) {
+  for (i=0; i<L2C_SET; i++) {
+    for (j=0; j<L2C_WAY; j++) {
       prefetch_bit[i][j] = 0;
     }
   }
 }
 
 
-void l2_prefetcher_operate(int cpu_num, unsigned long long int addr, unsigned long long int ip, int cache_hit)
+void CACHE::l2c_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit, uint8_t type)
 {
-  t_addr lineaddr = addr >> LOGLINE;
+  t_addr lineaddr = addr >> LOG2_BLOCK_SIZE;
 
-  int s = l2_get_set(addr);
-  int w = l2_get_way(0,addr,s);
-  int l2_hit = (w>=0);
+  uint32_t s = get_set(addr);
+  uint32_t w = get_way(addr,s);
   int prefetched = 0;
 
-  if (l2_hit) {
+  if (cache_hit) {
     // read the prefetch bit, and reset it
     prefetched = prefetch_bit[s][w];
     prefetch_bit[s][w] = 0;
   } else {
-    pt_llc_access();
+    pt_llc_access(*this);
   }
 
-  dq_pop();
+  dq_pop(*this);
 
   int prefetch_issued = 0;
 
-  if (! l2_hit || prefetched) {
+  if (! cache_hit || prefetched) {
     os_learn_best_offset(lineaddr);
-    prefetch_issued = issue_prefetch(lineaddr,prefetch_offset);
+    prefetch_issued = issue_prefetch(*this, lineaddr,prefetch_offset);
     if (prefetch_issued) {
       // assume the prefetch request is a L2 miss (we don't know actually)
-      pt_llc_access();
+      pt_llc_access(*this);
     }
   }
 }
 
 
-void l2_cache_fill(int cpu_num, unsigned long long int addr, int set, int way, int prefetch, unsigned long long int evicted_addr)
+void CACHE::l2c_prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way, uint8_t prefetch, uint64_t evicted_addr)
 {
   // In this version of the DPC2 simulator, the "prefetch" boolean passed
   // as input here is not reset whenever a demand request hits in the L2
@@ -460,11 +468,11 @@ void l2_cache_fill(int cpu_num, unsigned long long int addr, int set, int way, i
   // In a real hardware implementation of the BO prefetcher, we would distinguish
   // "prefetched" and "demand-requested", which are independent informations.
 
-  t_addr lineaddr = addr >> LOGLINE;
+  t_addr lineaddr = addr >> LOG2_BLOCK_SIZE;
 
   // write the prefetch bit
-  int s = l2_get_set(addr);
-  int w = l2_get_way(0,addr,s);
+  uint32_t s = get_set(addr);
+  uint32_t w = get_way(addr,s);
   prefetch_bit[s][w] = prefetch;
 
   // write the "right" bank of the RR table
@@ -477,18 +485,13 @@ void l2_cache_fill(int cpu_num, unsigned long long int addr, int set, int way, i
   }
 }
 
-
-void l2_prefetcher_heartbeat_stats(int cpu_num)
+void CACHE::l2c_prefetcher_final_stats()
 {
 
 }
 
-void l2_prefetcher_warmup_stats(int cpu_num)
-{
-
+void CACHE::inform_branch(uint64_t ip, uint8_t taken) {
 }
 
-void l2_prefetcher_final_stats(int cpu_num)
-{
-
+void CACHE::inform_tlb_eviction(uint64_t inserted_page_address, uint32_t way) {
 }
