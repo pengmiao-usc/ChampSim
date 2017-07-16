@@ -77,7 +77,13 @@ void bb_prefetcher::operate(address address, pc pc, bool cache_hit,
             return;
         }
         delta spatial_delta = ((delta) block) - ((delta) entry.m_trigger);
-        m_stats["spatial_delta:" + to_string(spatial_delta)]++;
+        if (spatial_delta < -1000) {
+            m_stats["spatial_delta:<-1000"]++;
+        } else if (spatial_delta > 1000) {
+            m_stats["spatial_delta:>1000"]++;
+        } else {
+            m_stats["spatial_delta:" + to_string(spatial_delta)]++;
+        }
         if (entry.m_spatial.in_range(spatial_delta)) {
             m_stats["in_spatial_range"]++;
             entry.m_spatial[spatial_delta] = true;
