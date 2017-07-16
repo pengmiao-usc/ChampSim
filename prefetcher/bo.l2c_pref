@@ -423,6 +423,7 @@ void CACHE::l2c_prefetcher_initialize()
       prefetch_bit[i][j] = 0;
     }
   }
+  cout << "CPU " << cpu << " L2C BO prefetcher" << endl;
 }
 
 
