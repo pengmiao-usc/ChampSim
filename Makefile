@@ -19,7 +19,7 @@ libDir =
 ifeq ($(debug),1)
 	debug=-O0 -ggdb
 else
-	debug=-O3
+	debug=-O3 -DNDEBUG
 endif
 inc := $(addprefix -I,$(inc))
 libs := $(addprefix -l,$(libs))
