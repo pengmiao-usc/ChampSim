@@ -6,7 +6,7 @@ objDir = obj
 binDir = bin
 inc = inc
 
-debug = 1
+debug ?= 1
 
 CFlags = -Wall -pedantic -std=c++11 -Wextra -Wno-unused-parameter
 LDFlags =
