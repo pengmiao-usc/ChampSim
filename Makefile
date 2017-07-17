@@ -6,7 +6,7 @@ objDir = obj
 binDir = bin
 inc = inc
 
-debug = 1
+debug ?= 1
 
 CFlags = -Wall -pedantic -std=c++11 -Wextra -Wno-unused-parameter
 LDFlags =
@@ -19,7 +19,7 @@ libDir =
 ifeq ($(debug),1)
 	debug=-O0 -ggdb
 else
-	debug=-O3
+	debug=-O3 -DNDEBUG
 endif
 inc := $(addprefix -I,$(inc))
 libs := $(addprefix -l,$(libs))
