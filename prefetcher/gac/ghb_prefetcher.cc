@@ -1,18 +1,25 @@
+/*
+ * Implementation of the Global History Buffer (G/AC) prefetcher.
+ *
+ * Originally written for the Sniper simulator.
+ *
+ * Adapted for the ChampSim simulator: Arka Majumdar
+ */
+
+#include "ghb_config.h"
 #include "ghb_prefetcher.h"
-#include "simulator.h"
-#include "config.hpp"
 
 #include <algorithm>
 
-GhbPrefetcher::GhbPrefetcher(String configName, core_id_t core_id)
-   : m_prefetchWidth(Sim()->getCfg()->getIntArray("perf_model/" + configName + "/prefetcher/ghb/width", core_id))
-   , m_prefetchDepth(Sim()->getCfg()->getIntArray("perf_model/" + configName + "/prefetcher/ghb/depth", core_id))
+GhbPrefetcher::GhbPrefetcher()
+   : m_prefetchWidth(GHB_WIDTH)
+   , m_prefetchDepth(GHB_DEPTH)
    , m_lastAddress(INVALID_ADDRESS)
-   , m_ghbSize(Sim()->getCfg()->getIntArray("perf_model/" + configName + "/prefetcher/ghb/ghb_size", core_id))
+   , m_ghbSize(GHB_SIZE)
    , m_ghbHead(0)
    , m_generation(0)
    , m_ghb(m_ghbSize)
-   , m_tableSize(Sim()->getCfg()->getIntArray("perf_model/" + configName + "/prefetcher/ghb/ghb_table_size", core_id))
+   , m_tableSize(GHB_TABLE_SIZE)
    , m_tableHead(0)
    , m_ghbTable(m_tableSize)
 {
@@ -22,10 +29,10 @@ GhbPrefetcher::~GhbPrefetcher()
 {
 }
 
-std::vector<IntPtr>
-GhbPrefetcher::getNextAddress(IntPtr pc, IntPtr currentAddress, bool cache_hit, core_id_t core_id)
+std::vector<uint64_t>
+GhbPrefetcher::getNextAddress(uint64_t pc, uint64_t currentAddress, bool cache_hit)
 {
-   std::vector<IntPtr> prefetchList;
+   std::vector<uint64_t> prefetchList;
 
    //deal with prefether initialization
    if (m_lastAddress == INVALID_ADDRESS)
@@ -35,11 +42,11 @@ GhbPrefetcher::getNextAddress(IntPtr pc, IntPtr currentAddress, bool cache_hit, 
    }
 
    //determine the delta with the last address
-   SInt64 delta = currentAddress - m_lastAddress;
+   int64_t delta = currentAddress - m_lastAddress;
    m_lastAddress = currentAddress;
 
    //look for the current delta in the table
-   UInt32 i = 0;
+   uint32_t i = 0;
    while (i < m_tableSize &&
           m_ghbTable[i].delta != INVALID_DELTA &&
           m_ghbTable[i].delta != delta)
@@ -49,14 +56,14 @@ GhbPrefetcher::getNextAddress(IntPtr pc, IntPtr currentAddress, bool cache_hit, 
        m_ghbTable[i].delta == delta &&
        m_ghbTable[i].generation == m_ghb[m_ghbTable[i].ghbIndex].generation) //check if the table still points to the current GHB 'generation'
    {
-      UInt32 width = 0;
-      UInt32 ghbIndex = m_ghbTable[i].ghbIndex;
+      uint32_t width = 0;
+      uint32_t ghbIndex = m_ghbTable[i].ghbIndex;
 
       while(width < m_prefetchWidth && ghbIndex != INVALID_INDEX)
       {
-         UInt32 depth = 0;
+         uint32_t depth = 0;
 
-         IntPtr newAddress = currentAddress;
+         uint64_t newAddress = currentAddress;
 
          while (depth < m_prefetchDepth &&
                 m_ghb[(ghbIndex + depth)%m_ghbSize].delta != INVALID_DELTA)
@@ -72,7 +79,7 @@ GhbPrefetcher::getNextAddress(IntPtr pc, IntPtr currentAddress, bool cache_hit, 
 
          ++width;
 
-         UInt32 nextIndex = m_ghb[ghbIndex].nextIndex;
+         uint32_t nextIndex = m_ghb[ghbIndex].nextIndex;
          if ((nextIndex > ghbIndex ||   //if we circle the GHB
               ghbIndex > m_ghbHead) &&  //OR we were already larger than the head pointer
               nextIndex < m_ghbHead)    //AND the nextIndex has been overwritten by new entries
@@ -88,8 +95,8 @@ GhbPrefetcher::getNextAddress(IntPtr pc, IntPtr currentAddress, bool cache_hit, 
    m_ghb[m_ghbHead].nextIndex = INVALID_INDEX;
    m_ghb[m_ghbHead].generation = m_generation;
 
-   UInt32 prevHead = m_ghbHead > 0 ? m_ghbHead - 1 : m_ghbSize - 1;
-   SInt64 prevDelta = m_ghb[prevHead].delta;
+   uint32_t prevHead = m_ghbHead > 0 ? m_ghbHead - 1 : m_ghbSize - 1;
+   int64_t prevDelta = m_ghb[prevHead].delta;
 
    if (prevDelta != INVALID_DELTA)
    {

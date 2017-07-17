@@ -1149,7 +1149,7 @@ int CACHE::prefetch_line(uint64_t ip, uint64_t base_addr, uint64_t pf_addr, int 
     pf_requested++;
 
     if (PQ.occupancy < PQ.SIZE) {
-        if ((base_addr>>PAGE_SHIFT) == (pf_addr>>PAGE_SHIFT)) {
+//        if ((base_addr>>PAGE_SHIFT) == (pf_addr>>PAGE_SHIFT)) {
             
             PACKET pf_packet;
             pf_packet.fill_level = fill_level;
@@ -1170,7 +1170,7 @@ int CACHE::prefetch_line(uint64_t ip, uint64_t base_addr, uint64_t pf_addr, int 
             pf_issued++;
 
             return 1;
-        }
+//        }
     }
 
     return 0;

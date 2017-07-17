@@ -1,49 +1,52 @@
 #ifndef __GHB_PREFETCHER_H
 #define __GHB_PREFETCHER_H
 
-#include "prefetcher.h"
+#include <cstdint>
+#include <vector>
 
-class GhbPrefetcher : public Prefetcher
+#define INVALID_ADDRESS 0
+
+class GhbPrefetcher
 {
    public:
-      GhbPrefetcher(String configName, core_id_t core_id);
-      std::vector<IntPtr> getNextAddress(IntPtr pc, IntPtr currentAddress, bool cache_hit, core_id_t core_id);
+      GhbPrefetcher();
+      std::vector<uint64_t> getNextAddress(uint64_t pc, uint64_t currentAddress, bool cache_hit);
 
       ~GhbPrefetcher();
 
    private:
-      static const SInt64 INVALID_DELTA = INT64_MAX;
-      static const UInt32 INVALID_INDEX = UINT32_MAX;
+      static const int64_t INVALID_DELTA = INT64_MAX;
+      static const uint32_t INVALID_INDEX = UINT32_MAX;
 
       struct GHBEntry
       {
-         UInt32 nextIndex; //index of the next entry belonging to the same list
-         SInt64 delta; //delta between last address and current address
-         UInt32 generation;
+         uint32_t nextIndex; //index of the next entry belonging to the same list
+         int64_t delta; //delta between last address and current address
+         uint32_t generation;
          GHBEntry() : nextIndex(INVALID_INDEX), delta(INVALID_DELTA), generation(0) {}
       };
 
       struct TableEntry
       {
-         UInt32 ghbIndex;
-         SInt64 delta;
-         UInt32 generation;
+         uint32_t ghbIndex;
+         int64_t delta;
+         uint32_t generation;
          TableEntry() : ghbIndex(INVALID_INDEX), delta(INVALID_DELTA), generation(0) {}
       };
 
-      UInt32 m_prefetchWidth;
-      UInt32 m_prefetchDepth;
+      uint32_t m_prefetchWidth;
+      uint32_t m_prefetchDepth;
 
-      IntPtr m_lastAddress;
+      uint64_t m_lastAddress;
 
       //circular global history buffer
-      UInt32 m_ghbSize;
-      UInt32 m_ghbHead;
-      UInt32 m_generation;
+      uint32_t m_ghbSize;
+      uint32_t m_ghbHead;
+      uint32_t m_generation;
       std::vector<GHBEntry> m_ghb;
 
-      UInt32 m_tableSize;
-      UInt32 m_tableHead; //next table position to be overwritten (in lack of a better replacement policy at the moment)
+      uint32_t m_tableSize;
+      uint32_t m_tableHead; //next table position to be overwritten (in lack of a better replacement policy at the moment)
       std::vector<TableEntry> m_ghbTable;
 };
 
