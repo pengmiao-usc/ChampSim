@@ -1,0 +1,58 @@
+/*
+ * This file serves as the interface between the ChampSim cache system and the
+ * object-oriented implementation of G/AC (GHB). See the "stems" directory for
+ * the actual implementation and all supporting files.
+ *
+ * The reason this file exists is to expose the G/AC (GHB) prefetcher as an
+ * option in the build_champsim.sh script and also provide greater modularity
+ * in the actual stems_prefetcher code.
+ *
+ * File author: Arka Majumdar
+ */
+
+#include "gac/ghb_prefetcher.h"
+
+#include "cache.h"
+
+using namespace std;
+
+/*
+ * Create an anonymous namespace so there are no naming conflicts between
+ * "g_prefetcher_for_cpu" and any other
+ */
+namespace {
+/*
+ * Maintain one stems_prefetcher per CPU.
+ */
+GhbPrefetcher* g_prefetcher_for_cpu[NUM_CPUS];
+}
+
+void CACHE::l2c_prefetcher_initialize() {
+    // No good place to delete this without modifying the CACHE destructor specifically for G/AC (GHB).
+    // Lifetime is the end of the program and will be deallocated anyway when the program ends, so do not delete explicitly.
+    g_prefetcher_for_cpu[cpu] = new GhbPrefetcher();
+    cout << "CPU " << cpu << " L2C G/AC (GHB) prefetcher" << endl;
+}
+
+void CACHE::l2c_prefetcher_operate(uint64_t addr, uint64_t ip,
+        uint8_t cache_hit, uint8_t type) {
+    for (uint64_t pf_addr : g_prefetcher_for_cpu[cpu]->getNextAddress(ip, addr,
+            (cache_hit) ? true : false)) {
+        prefetch_line(ip, addr, pf_addr, FILL_L2);
+    }
+}
+
+void CACHE::l2c_prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way,
+        uint8_t prefetch, uint64_t evicted_addr) {
+    // Operation unsupported. Do nothing.
+}
+
+void CACHE::l2c_prefetcher_final_stats() {
+    // Operation unsupported. Do nothing.
+}
+
+void CACHE::inform_branch(uint64_t ip, uint8_t taken) {
+}
+
+void CACHE::inform_tlb_eviction(uint64_t inserted_page_address, uint32_t way) {
+}
