@@ -43,6 +43,8 @@ private:
 
     ghb::size_type m_degree;
 
+    ghb::size_type m_skip_degree;
+
     prefetch_line_func m_prefetch_line;
 
     index_table& index_table_for(bool branch_taken);

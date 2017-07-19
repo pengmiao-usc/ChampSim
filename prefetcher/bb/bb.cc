@@ -27,6 +27,8 @@ bb_prefetcher::bb_prefetcher(prefetch_line_func prefetch_line) :
         //
         m_degree(BB_DEGREE),
         //
+        m_skip_degree(BB_SKIP_DEGREE),
+        //
         m_prefetch_line(prefetch_line) {
 }
 
@@ -53,8 +55,9 @@ void bb_prefetcher::operate(address address, pc pc, bool cache_hit,
             m_current_ghb_entry_index = it->second;
             bool first = true;
             for (ghb::size_type i = 0; i < m_degree; i++) {
-                const ghb_entry& entry = m_ghb[m_current_ghb_entry_index + i];
+                const ghb_entry& entry = m_ghb[m_current_ghb_entry_index + m_skip_degree + i];
                 if (!entry.m_valid) {
+                    i--;
                     continue;
                 }
                 if (!first) {

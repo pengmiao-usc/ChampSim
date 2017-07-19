@@ -24,5 +24,9 @@
 #endif
 
 #ifndef BB_DEGREE
-#define BB_DEGREE 8
+#define BB_DEGREE 1
+#endif
+
+#ifndef BB_SKIP_DEGREE
+#define BB_SKIP_DEGREE 8
 #endif
