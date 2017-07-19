@@ -16,7 +16,7 @@
 #include "cache.h"
 
 #define IP_TRACKER_COUNT 1024
-#define PREFETCH_DEGREE 3
+#define PREFETCH_DEGREE 1
 
 class IP_TRACKER {
   public:

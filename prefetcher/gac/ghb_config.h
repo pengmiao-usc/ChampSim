@@ -7,9 +7,9 @@
 #endif
 
 #ifndef GHB_SIZE
-#define GHB_SIZE 1
+#define GHB_SIZE 512
 #endif
 
 #ifndef GHB_TABLE_SIZE
-#define GHB_TABLE_SIZE 1
+#define GHB_TABLE_SIZE 512
 #endif
