@@ -54,10 +54,10 @@ void bb_prefetcher::operate(address address, pc pc, bool cache_hit,
             // Start prefetching.
             m_current_ghb_entry_index = it->second;
             bool first = true;
-            for (ghb::size_type i = 0; i < m_degree; i++) {
+            for (ghb::size_type i = 0, j = 0; j < m_degree; i++, j++) {
                 const ghb_entry& entry = m_ghb[m_current_ghb_entry_index + m_skip_degree + i];
                 if (!entry.m_valid) {
-                    i--;
+                    j--;
                     continue;
                 }
                 if (!first) {
