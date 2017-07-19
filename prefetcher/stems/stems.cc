@@ -307,7 +307,7 @@ void stems_prefetcher::read_dram(address address, stream_queue_id origin) {
     m_l1d->pf_requested++;
 
     PACKET pf_packet;
-    pf_packet.fill_level = FILL_L2;
+    pf_packet.fill_level = FILL_LLC;
     pf_packet.cpu = m_l1d->cpu;
     pf_packet.address = address >> LOG2_BLOCK_SIZE;
     pf_packet.full_addr = address;

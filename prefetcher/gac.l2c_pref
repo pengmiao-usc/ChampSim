@@ -38,7 +38,7 @@ void CACHE::l2c_prefetcher_operate(uint64_t addr, uint64_t ip,
         uint8_t cache_hit, uint8_t type) {
     for (uint64_t pf_addr : g_prefetcher_for_cpu[cpu]->getNextAddress(ip, addr,
             (cache_hit) ? true : false)) {
-        prefetch_line(ip, addr, pf_addr, FILL_L2);
+        prefetch_line(ip, addr, pf_addr, FILL_LLC);
     }
 }
 

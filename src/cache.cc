@@ -191,7 +191,7 @@ void CACHE::handle_writeback()
         uint32_t set = get_set(WQ.entry[index].address);
         int way = check_hit(&WQ.entry[index]);
 
-        if (cache_type == IS_L2C) {
+        if (cache_type == IS_LLC) {
             access_svb(WRITEBACK, &WQ.entry[index]);
         }
 
@@ -426,12 +426,12 @@ void CACHE::handle_read()
             uint32_t set = get_set(RQ.entry[index].address);
             int way = check_hit(&RQ.entry[index]);
 
-            // If the cache is L2, scan the SVB in parallel.
-            bool svb_hit = (cache_type == IS_L2C) && access_svb(LOAD, &RQ.entry[index]);
+            // If the cache is LLC, scan the SVB in parallel.
+            bool svb_hit = (cache_type == IS_LLC) && access_svb(LOAD, &RQ.entry[index]);
 
             if (way >= 0) {
                 // If there is a hit in the cache directly, always prefer the cache over the SVB.
-                // However, access_svb must always be called when scanning the L2 to train the prefetcher.
+                // However, access_svb must always be called when scanning the LLC to train the prefetcher.
                 svb_hit = false;
             }
 
@@ -461,15 +461,10 @@ void CACHE::handle_read()
 
                 // update prefetcher on load instruction
                 if (RQ.entry[index].type == LOAD) {
-                    if (!svb_hit) {
-                        if (cache_type == IS_L1D)
-                            l1d_prefetcher_operate(block[set][way].full_addr, RQ.entry[index].ip, 1, RQ.entry[index].type);
-                        else if (cache_type == IS_L2C)
-                            l2c_prefetcher_operate(block[set][way].full_addr, RQ.entry[index].ip, 1, RQ.entry[index].type);
-                    } else {
-                        assert(cache_type == IS_L2C);
-                        l2c_prefetcher_operate(RQ.entry[index].full_addr, RQ.entry[index].ip, 1, RQ.entry[index].type);
-                    }
+                    if (cache_type == IS_L1D)
+                        l1d_prefetcher_operate(block[set][way].full_addr, RQ.entry[index].ip, 1, RQ.entry[index].type);
+                    else if (cache_type == IS_L2C)
+                        l2c_prefetcher_operate(block[set][way].full_addr, RQ.entry[index].ip, 1, RQ.entry[index].type);
                 }
 
                 if (!svb_hit) {

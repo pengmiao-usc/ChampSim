@@ -389,11 +389,11 @@ int issue_prefetch(CACHE& l2c, t_addr lineaddr, int offset)
     // crossing the page boundary, no prefetch request issued
     return 0;
   }
-  if (static_cast<int>(l2c.MSHR.occupancy) < pt.mshr_threshold) {
-    // prefetch into L2
-    dq_push(l2c, lineaddr);
-    return l2c.prefetch_line(0,lineaddr<<LOG2_BLOCK_SIZE,(lineaddr+offset)<<LOG2_BLOCK_SIZE,FILL_L2);
-  }
+//  if (static_cast<int>(l2c.MSHR.occupancy) < pt.mshr_threshold) {
+//    // prefetch into L2
+//    dq_push(l2c, lineaddr);
+//    return l2c.prefetch_line(0,lineaddr<<LOG2_BLOCK_SIZE,(lineaddr+offset)<<LOG2_BLOCK_SIZE,FILL_L2);
+//  }
   // could not prefetch into L2
   // try to prefetch into LLC if prefetch accuracy not too bad
   if (pt.prefetch_score > LOW_SCORE) {

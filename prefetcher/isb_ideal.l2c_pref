@@ -311,15 +311,15 @@ void CACHE::l2c_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit
         vector<uint64_t> candidates = isb.isb_predict(addr_B, str_addr_B, ip);
         for(unsigned int i=0; i<candidates.size(); i++)
         {
-            if (MSHR.occupancy < (MSHR.SIZE>>1))
-                prefetch_line(ip, addr, candidates[i], FILL_L2);
-            else
+//            if (MSHR.occupancy < (MSHR.SIZE>>1))
+//                prefetch_line(ip, addr, candidates[i], FILL_L2);
+//            else
                 prefetch_line(ip, addr, candidates[i], FILL_LLC);
         }
     }
                 
 
-    prefetch_line(ip, addr, addr, FILL_L2);
+    prefetch_line(ip, addr, addr, FILL_LLC);
 
     unsigned int str_addr_A;
     uint64_t addr_A;
