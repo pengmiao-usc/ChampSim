@@ -151,28 +151,29 @@ void stems_prefetcher::operate(address current_address, pc pc, bool cache_hit,
     // Start fetching stuff.
     for (pair<stream_queue_id, stream_queue>& pair : m_streaming_engine) {
         stream_queue& queue = pair.second;
-        svb::size_type num_fetch = 0;
-        if (queue.m_new_stream) {
-            // Prefetch only one at the beginning of new streams.
-            num_fetch = 1;
-            queue.m_new_stream = false;
-        } else if (queue.m_useful_stream) {
-            // Force degree 1.
-            num_fetch = 1;
-            // Maintain stream lookahead for all streams.
-            // "Intelligent" stream lookahead: tries to fill the empty space only with items from streams.
-//			num_fetch =
-//					min(m_svb.max_size() - m_svb.size(),
-//							m_stream_lookahead
-//									- m_svb.m_const_current_lookahead.find(
-//											pair.first)->second);
-            // "Normal" stream lookahead: always maintains stream lookahead for all streams.
+//        svb::size_type num_fetch = 0;
+        svb::size_type num_fetch = 1;
+//        if (queue.m_new_stream) {
+//            // Prefetch only one at the beginning of new streams.
+//            num_fetch = 1;
+//            queue.m_new_stream = false;
+//        } else if (queue.m_useful_stream) {
+//            // Force degree 1.
+//            num_fetch = 1;
+//            // Maintain stream lookahead for all streams.
+//            // "Intelligent" stream lookahead: tries to fill the empty space only with items from streams.
+//            num_fetch =
+//                    min(m_svb.max_size() - m_svb.size(),
+//                            m_stream_lookahead
+//                                    - m_svb.m_const_current_lookahead.find(
+//                                            pair.first)->second);
+//            // "Normal" stream lookahead: always maintains stream lookahead for all streams.
 //            num_fetch = m_stream_lookahead
 //                    - m_svb.m_const_current_lookahead.find(pair.first)->second;
-        }
+//        }
         for (svb::size_type i = 0; i < num_fetch && !queue.empty(); i++) {
-            read_dram(queue.front(), pair.first);
-//            m_l1d->prefetch_line(pc, current_address, queue.front(), FILL_LLC);
+//            read_dram(queue.front(), pair.first);
+            m_l1d->prefetch_line(pc, current_address, queue.front(), FILL_LLC);
             queue.pop_front();
         }
     }
@@ -190,49 +191,49 @@ void stems_prefetcher::operate(address current_address, pc pc, bool cache_hit,
 }
 
 bool stems_prefetcher::access_svb(cache_access_type type, PACKET* packet) {
-    m_stats["access_svb-receieved"]++;
-    for (svb::iterator it = m_svb.begin(); it != m_svb.end();) {
-        if (it->m_packet->full_addr == packet->full_addr
-                && it->m_packet->event_cycle
-                        <= current_core_cycle[m_l1d->cpu]) {
-            m_stats["svb-hits"]++;
-            switch (type) {
-            case LOAD: {
-                m_stats["svb-reads"]++;
-                // Remember to capture the origin stream before removing the entry from the SVB.
-                streaming_engine::iterator origin_stream_it =
-                        m_streaming_engine.find(it->m_origin);
-                // Unspecified: LRU policy for SVB doesn't even make any sense because blocks are moved out of the SVB immediately upon usage - LRU just becomes a plain queue.
-                // Make some space for the (possible) next element from the originating queue.
-                // Remove from SVB, destructor will take care of memory because of unique_ptr.
-                it = m_svb.erase(it);
-                if (origin_stream_it == m_streaming_engine.end()) {
-                    m_stats["stale-svb-hits"]++;
-                    // Unspecified: what happens when the stream queue is gone by the time a block that originated from it is an SVB hit?
-                } else {
-                    m_stats["useful-streams"]++;
-                    stream_queue& queue = origin_stream_it->second;
-                    queue.m_useful_stream = true;
-                    m_streaming_engine.use(origin_stream_it);
-                }
-                // Caller (L2) will pull packet into L1.
-                return true;
-            }
-            case WRITEBACK:
-                m_stats["svb-invalidates"]++;
-                // Invalidate block on write.
-                // No "valid bit" in my implementation; just remove the entry.
-                it = m_svb.erase(it);
-                // Actually do the real write in the cache.
-                return false;
-            default:
-                return false;
-            }
-        } else {
-            ++it;
-        }
-    }
-    m_stats["svb-misses"]++;
+//    m_stats["access_svb-receieved"]++;
+//    for (svb::iterator it = m_svb.begin(); it != m_svb.end();) {
+//        if (it->m_packet->full_addr == packet->full_addr
+//                && it->m_packet->event_cycle
+//                        <= current_core_cycle[m_l1d->cpu]) {
+//            m_stats["svb-hits"]++;
+//            switch (type) {
+//            case LOAD: {
+//                m_stats["svb-reads"]++;
+//                // Remember to capture the origin stream before removing the entry from the SVB.
+//                streaming_engine::iterator origin_stream_it =
+//                        m_streaming_engine.find(it->m_origin);
+//                // Unspecified: LRU policy for SVB doesn't even make any sense because blocks are moved out of the SVB immediately upon usage - LRU just becomes a plain queue.
+//                // Make some space for the (possible) next element from the originating queue.
+//                // Remove from SVB, destructor will take care of memory because of unique_ptr.
+//                it = m_svb.erase(it);
+//                if (origin_stream_it == m_streaming_engine.end()) {
+//                    m_stats["stale-svb-hits"]++;
+//                    // Unspecified: what happens when the stream queue is gone by the time a block that originated from it is an SVB hit?
+//                } else {
+//                    m_stats["useful-streams"]++;
+//                    stream_queue& queue = origin_stream_it->second;
+//                    queue.m_useful_stream = true;
+//                    m_streaming_engine.use(origin_stream_it);
+//                }
+//                // Caller (L2) will pull packet into L1.
+//                return true;
+//            }
+//            case WRITEBACK:
+//                m_stats["svb-invalidates"]++;
+//                // Invalidate block on write.
+//                // No "valid bit" in my implementation; just remove the entry.
+//                it = m_svb.erase(it);
+//                // Actually do the real write in the cache.
+//                return false;
+//            default:
+//                return false;
+//            }
+//        } else {
+//            ++it;
+//        }
+//    }
+//    m_stats["svb-misses"]++;
     return false;
 }
 
@@ -307,33 +308,33 @@ void stems_prefetcher::reconstruct(address trigger_address,
 }
 
 void stems_prefetcher::read_dram(address address, stream_queue_id origin) {
-    m_l1d->pf_requested++;
-
-    PACKET pf_packet;
-    pf_packet.fill_level = FILL_LLC;
-    pf_packet.cpu = m_l1d->cpu;
-    pf_packet.address = address >> LOG2_BLOCK_SIZE;
-    pf_packet.full_addr = address;
-    pf_packet.ip = 0;
-    pf_packet.type = PREFETCH;
-    pf_packet.event_cycle = current_core_cycle[m_l1d->cpu];
-    pf_packet.svb = true;
-    pf_packet.redirect_to_svb = true;
-    pf_packet.extra_tag = origin;
-
-    // add_pq will copy pf_packet, so pf_packet can safely be automatically destroyed at the end of this function.
-    m_l1d->add_pq(&pf_packet);
-
-    m_l1d->pf_issued++;
-
-    m_stats["dram-reads"]++;
+//    m_l1d->pf_requested++;
+//
+//    PACKET pf_packet;
+//    pf_packet.fill_level = FILL_LLC;
+//    pf_packet.cpu = m_l1d->cpu;
+//    pf_packet.address = address >> LOG2_BLOCK_SIZE;
+//    pf_packet.full_addr = address;
+//    pf_packet.ip = 0;
+//    pf_packet.type = PREFETCH;
+//    pf_packet.event_cycle = current_core_cycle[m_l1d->cpu];
+//    pf_packet.svb = true;
+//    pf_packet.redirect_to_svb = true;
+//    pf_packet.extra_tag = origin;
+//
+//    // add_pq will copy pf_packet, so pf_packet can safely be automatically destroyed at the end of this function.
+//    m_l1d->add_pq(&pf_packet);
+//
+//    m_l1d->pf_issued++;
+//
+//    m_stats["dram-reads"]++;
 }
 
 void stems_prefetcher::fill_svb(PACKET* packet) {
-    if (packet->svb) {
-        m_stats["svb-fills"]++;
-        m_svb.push_front(svb_entry(packet, packet->extra_tag));
-    }
+//    if (packet->svb) {
+//        m_stats["svb-fills"]++;
+//        m_svb.push_front(svb_entry(packet, packet->extra_tag));
+//    }
 }
 
 const map<string, stat>& stems_prefetcher::stats() const {
