@@ -107,6 +107,12 @@ void print_roi_stats(uint32_t cpu, CACHE *cache)
 
     cout << cache->NAME;
     cout << " WRITEBACK ACCESS: " << setw(10) << cache->roi_access[cpu][3] << "  HIT: " << setw(10) << cache->roi_hit[cpu][3] << "  MISS: " << setw(10) << cache->roi_miss[cpu][3] << endl;
+
+    cout << cache->NAME << " pf_requested " << cache->pf_requested << endl;
+    cout << cache->NAME << " pf_issued " << cache->pf_issued << endl;
+    cout << cache->NAME << " pf_useful " << cache->pf_useful << endl;
+    cout << cache->NAME << " pf_useless " << cache->pf_useless << endl;
+    cout << cache->NAME << " pf_fill " << cache->pf_fill << endl;
 }
 
 void print_sim_stats(uint32_t cpu, CACHE *cache)
@@ -133,6 +139,12 @@ void print_sim_stats(uint32_t cpu, CACHE *cache)
 
     cout << cache->NAME;
     cout << " WRITEBACK ACCESS: " << setw(10) << cache->sim_access[cpu][3] << "  HIT: " << setw(10) << cache->sim_hit[cpu][3] << "  MISS: " << setw(10) << cache->sim_miss[cpu][3] << endl;
+
+    cout << cache->NAME << " pf_requested " << cache->pf_requested << endl;
+    cout << cache->NAME << " pf_issued " << cache->pf_issued << endl;
+    cout << cache->NAME << " pf_useful " << cache->pf_useful << endl;
+    cout << cache->NAME << " pf_useless " << cache->pf_useless << endl;
+    cout << cache->NAME << " pf_fill " << cache->pf_fill << endl;
 }
 
 void print_branch_stats()
