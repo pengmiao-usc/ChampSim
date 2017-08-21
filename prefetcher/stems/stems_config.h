@@ -50,7 +50,7 @@
  *     LRU stream as a victim when a new stream must be allocated. We
  *     use eight stream queues in our evaluation."
  */
-#define STEMS_STREAMING_ENGINE_NUM_STREAM_QUEUES 8
+#define STEMS_STREAMING_ENGINE_NUM_STREAM_QUEUES 1
 #endif
 
 #ifndef STEMS_SVB_SIZE
