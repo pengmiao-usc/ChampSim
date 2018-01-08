@@ -1,0 +1,680 @@
+# General Information
+- Operating System:  Linux 3.13.11 generic x86_64 GNU/Linux
+- Basic Block Vector (BBV) is collected with Valgrind 3.11.0
+- BBV is analyzed with SimPoint 3.2
+- Hardware prefetchers are disabled from BIOS setting
+- CPU (/proc/cpuinfo):
+processor   : 0
+vendor_id   : GenuineIntel
+cpu family  : 6
+model       : 45
+model name  : Intel(R) Xeon(R) CPU E5-2420 0 @ 1.90GHz
+stepping    : 7
+microcode   : 0x710
+cpu MHz     : 1277.527
+cache size  : 15360 KB
+physical id : 0
+siblings    : 12
+core id     : 0
+cpu cores   : 6
+apicid      : 0
+initial apicid  : 0
+fpu     : yes
+fpu_exception   : yes
+cpuid level : 13
+wp      : yes
+flags       : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc aperfmperf eagerfpu pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 cx16 xtpr pdcm pcid dca sse4_1 sse4_2 x2apic popcnt tsc_deadline_timer aes xsave avx lahf_lm ida arat xsaveopt pln pts dtherm tpr_shadow vnmi flexpriority ept vpid
+bogomips    : 3799.78
+clflush size    : 64
+cache_alignment : 64
+address sizes   : 46 bits physical, 48 bits virtual
+power management:
+ 
+ 
+400.perlbench
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=perlbench_bbv.out --pc-out-file=perlbench_bbv.pc.out ./perlbench -Ilib checkspam.pl 2500 5 25 11 150 1 1 1 1
+ 
+==4297== # Thread 1
+==4297== #   Total intervals: 136 (Interval Size 1000000000)
+==4297== #   Total instructions: 136770485862
+==4297== #   Total reps: 94482881
+==4297== #   Unique reps: 4360648
+==4297== #   Total fldcw instructions: 0
+ 
+# SimPoint
+0.536765 53
+0.404412 135
+0.0220588 1
+0.0220588 105
+0.0147059 2
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o perlbench.trace -s ${1}000000000 -t 1000000000 -- ./perlbench -Ilib checkspam.pl 2500 5 25 11 150 1 1 1 1
+ 
+ 
+401.bzip2
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=bzip2_bbv.out --pc-out-file=bzip2_bbv.pc.out ./bzip2 input.source 280
+ 
+# Valgrind output
+==5282== # Thread 1
+==5282== #   Total intervals: 392 (Interval Size 1000000000)
+==5282== #   Total instructions: 392911342516
+==5282== #   Total reps: 261266005
+==5282== #   Unique reps: 436439
+==5282== #   Total fldcw instructions: 0
+ 
+# SimPoint
+0.334184 183
+0.211735 281
+0.19898 259
+0.142857 227
+0.0969388 17
+0.0153061 267
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o bzip2_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./bzip2 input.source 280
+ 
+ 
+403.gcc
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=gcc_bbv.out --pc-out-file=gcc_bbv.pc.out ./gcc 166.i -o 166.s
+ 
+==10914== # Thread 1
+==10914== #   Total intervals: 65 (Interval Size 1000000000)
+==10914== #   Total instructions: 65998476953
+==10914== #   Total reps: 152720022
+==10914== #   Unique reps: 4353339
+==10914== #   Total fldcw instructions: 0
+ 
+# SimPoint
+0.323077 13
+0.153846 39
+0.138462 56
+0.138462 22
+0.0923077 26
+0.0923077 30
+0.0307692 2
+0.0307692 3
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o gcc.trace -s ${1}000000000 -t 1000000000 -- ./gcc 166.i -o 166.s
+ 
+ 
+410.bwaves
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=bwaves_bbv.out --pc-out-file=bwaves_bbv.pc.out ./bwaves
+ 
+# Valgrind output
+==15365== # Thread 1
+==15365== #   Total intervals: 2076 (Interval Size 1000000000)
+==15365== #   Total instructions: 2076065301168
+==15365== #   Total reps: 3596
+==15365== #   Unique reps: 231
+==15365== #   Total fldcw instructions: 1
+ 
+# SimPoint
+0.337187 1861
+0.262524 1609
+0.157996 98
+0.0799615 1258
+0.0472062 1067
+0.0409441 370
+0.0390173 528
+0.0351638 1896
+ 
+# ChampSim trace
+pin -injection child -t /home/cienlux/local/lib/champsim_tracer.so -o bwaves.trace -s ${1}000000000 -t 1000000000 -- ./bwaves
+ 
+ 
+416.gamess
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=gamess_bbv.out --pc-out-file=gamess_bbv.pc.out ./gamess < cytosine.2.config
+ 
+# SimPoint
+0.31694 316
+0.224044 196
+0.166667 247
+0.136612 261
+0.079235 100
+0.0710383 341
+0.00546448 0
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o gamess_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./gamess < cytosine.2.config
+ 
+ 
+429.mcf
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=mcf_bbv.out --pc-out-file=mcf_bbv.pc.out ./mcf inp.in
+ 
+# SimPoint
+0.329897 46
+0.175258 250
+0.154639 158
+0.147766 186
+0.113402 18
+0.04811 219
+0.0171821 235
+0.0137457 270
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o mcf_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./mcf inp.in
+ 
+ 
+433.milc
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=milc_bbv.out --pc-out-file=milc_bbv.pc.out ./milc < su3imp.in
+ 
+# Valgrind output
+==16545== # Thread 1
+==16545== #   Total intervals: 1014 (Interval Size 1000000000)
+==16545== #   Total instructions: 1014687737507
+==16545== #   Total reps: 2737410
+==16545== #   Unique reps: 144185
+==16545== #   Total fldcw instructions: 0
+ 
+# SimPoint
+0.240631 360
+0.206114 744
+0.197239 409
+0.129191 599
+0.12426 88
+0.0769231 545
+0.0157791 714
+0.00986193 243
+ 
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o milc_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./milc < su3imp.in
+ 
+ 
+435.gromacs
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=gromacs_bbv.out --pc-out-file=gromacs_bbv.pc.out ./gromacs -silent -deffnm gromacs -nice 0
+ 
+# Valgrind output
+==20101== # Thread 1
+==20101== #   Total intervals: 4 (Interval Size 1000000000)
+==20101== #   Total instructions: 4545821534
+==20101== #   Total reps: 2561966
+==20101== #   Unique reps: 226779
+==20101== #   Total fldcw instructions: 0
+ 
+# SimPoint
+0.75 1
+0.25 0
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o gromacs_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./gromacs -silent -deffnm gromacs -nice 0
+ 
+ 
+436.cactusADM
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=cactusADM_bbv.out --pc-out-file=cactusADM_bbv.pc.out ./cactusADM benchADM.par
+ 
+# Valgrind output
+==22124== # Thread 1
+==22124== #   Total intervals: 1555 (Interval Size 1000000000)
+==22124== #   Total instructions: 1555286440906
+==22124== #   Total reps: 258062
+==22124== #   Unique reps: 28376
+==22124== #   Total fldcw instructions: 1
+ 
+# SimPoint
+0.515756 734
+0.353698 1495
+0.0643087 1039
+0.0636656 669
+0.00192926 1291
+0.000643087 0
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o cactusADM.trace -s ${1}000000000 -t 1000000000 -- ./cactusADM benchADM.par
+ 
+ 
+437.leslie3d
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=leslie3d_bbv.out --pc-out-file=leslie3d_bbv.pc.out ./leslie3d < leslie3d.in
+ 
+==23428== # Thread 1
+==23428== #   Total intervals: 1209 (Interval Size 1000000000)
+==23428== #   Total instructions: 1209980097989
+==23428== #   Total reps: 93831
+==23428== #   Unique reps: 7970
+==23428== #   Total fldcw instructions: 1
+ 
+# SimPoint
+0.191894 1116
+0.163772 94
+0.142266 1186
+0.119107 588
+0.11249 827
+0.105873 182
+0.0934657 896
+0.0711332 87
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o leslie3d_${1}.trace -s ${1}000000000 -t 1000000000 -- ./leslie3d < leslie3d.in
+ 
+ 
+444.namd
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=namd_bbv.out --pc-out-file=namd_bbv.pc.out ./namd --input namd.input --iterations 38 --output namd.out
+ 
+# Valgrind output
+==26621== # Thread 1
+==26621== #   Total intervals: 2255 (Interval Size 1000000000)
+==26621== #   Total instructions: 2255592168475
+==26621== #   Total reps: 342038
+==26621== #   Unique reps: 100911
+==26621== #   Total fldcw instructions: 0
+ 
+# SimPoint
+0.181818 400
+0.135698 851
+0.110421 1907
+0.109978 1276
+0.103769 533
+0.102439 1522
+0.0922395 1
+0.0682927 782
+0.0501109 794
+0.0452328 566
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o namd_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./namd --input namd.input --iterations 38 --output namd.out
+ 
+ 
+445.gobmk
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=gobmk_bbv.out --pc-out-file=gobmk_bbv.pc.out ./gobmk --quiet --mode gtp < 13x13.tst
+ 
+# Valgrind output
+==28840== # Thread 1
+==28840== #   Total intervals: 218 (Interval Size 1000000000)
+==28840== #   Total instructions: 218806879450
+==28840== #   Total reps: 1935875791
+==28840== #   Unique reps: 15809487
+==28840== #   Total fldcw instructions: 0
+ 
+# SimPoint
+0.201835 135
+0.201835 60
+0.178899 76
+0.169725 171
+0.137615 22
+0.110092 149
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o gobmk_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./gobmk --quiet --mode gtp < 13x13.tst
+ 
+ 
+450.soplex
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=soplex_bbv.out --pc-out-file=soplex_bbv.pc.out ./soplex -s1 -e -m45000 pds-50.mps
+ 
+# Valgrind output
+==27300== # Thread 1
+==27300== #   Total intervals: 327 (Interval Size 1000000000)
+==27300== #   Total instructions: 327553695796
+==27300== #   Total reps: 120731685
+==27300== #   Unique reps: 4314483
+==27300== #   Total fldcw instructions: 0
+ 
+# SimPoint
+0.347561 66
+0.185976 205
+0.164634 217
+0.140244 282
+0.0762195 139
+0.0609756 13
+0.0121951 159
+0.0121951 1
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o soplex_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./soplex -s1 -e -m45000 pds-50.mps
+ 
+ 
+453.povray
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=povray_bbv.out --pc-out-file=povray_bbv.pc.out ./povray SPEC-benchmark-ref.ini
+ 
+# Valgrind output
+==29797== # Thread 1
+==29797== #   Total intervals: 907 (Interval Size 1000000000)
+==29797== #   Total instructions: 907236350813
+==29797== #   Total reps: 6513386954
+==29797== #   Unique reps: 189139236
+==29797== #   Total fldcw instructions: 0
+ 
+# SimPoint
+0.29989 437
+0.149945 711
+0.140022 250
+0.113561 819
+0.0992282 122
+0.0661521 889
+0.061742 178
+0.047409 34
+0.0220507 51
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o povray_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./povray SPEC-benchmark-ref.ini
+ 
+ 
+454.calculix
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=calculix_bbv.out --pc-out-file=calculix_bbv.pc.out ./calculix -i hyperviscoplastic
+ 
+==13298== # Thread 1
+==13298== #   Total intervals: 4426 (Interval Size 1000000000)
+==13298== #   Total instructions: 4426281978434
+==13298== #   Total reps: 92932031
+==13298== #   Unique reps: 4706956
+==13298== #   Total fldcw instructions: 1
+ 
+ 
+0.555355 2670
+0.207185 2655
+0.0964754 3812
+0.0607772 3971
+0.0386353 2585
+0.0248531 1384
+0.0167194 1827
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o calculix_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./calculix -i hyperviscoplastic
+ 
+ 
+456.hmmer
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=hmmer_bbv.out --pc-out-file=hmmer_bbv.pc.out ./hmmer nph3.hmm swiss41
+ 
+# Valgrind output
+==26096== # Thread 1
+==26096== #   Total intervals: 841 (Interval Size 1000000000)
+==26096== #   Total instructions: 841004609921
+==26096== #   Total reps: 14781520
+==26096== #   Unique reps: 302036
+==26096== #   Total fldcw instructions: 0
+ 
+# SimPoint
+0.317479 7
+0.243757 546
+0.198573 397
+0.134364 765
+0.0570749 485
+0.0356718 702
+0.0118906 519
+0.00118906 0
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o hmmer_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./hmmer nph3.hmm swiss41
+ 
+ 
+458.sjeng
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=sjeng_bbv.out --pc-out-file=sjeng_bbv.pc.out ./sjeng ref.txt
+ 
+# Valgrind output
+==16075== # Thread 1
+==16075== #   Total intervals: 2217 (Interval Size 1000000000)
+==16075== #   Total instructions: 2217173349617
+==16075== #   Total reps: 3279865217
+==16075== #   Unique reps: 273318228
+==16075== #   Total fldcw instructions: 0
+ 
+# SimPoint
+0.225079 358
+0.217411 1966
+0.201173 1109
+0.136671 1223
+0.126748 256
+0.0663058 996
+0.0266125 2166
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o sjeng_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./sjeng ref.txt
+ 
+ 
+459.GemsFDTD
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=GemsFDTD_bbv.out --pc-out-file=GemsFDTD_bbv.pc.out ./GemsFDTD
+ 
+# Valgrind output
+==9371== # Thread 1
+==9371== #   Total intervals: 1197 (Interval Size 1000000000)
+==9371== #   Total instructions: 1197172492226
+==9371== #   Total reps: 4397923
+==9371== #   Unique reps: 209532
+==9371== #   Total fldcw instructions: 1
+ 
+# SimPoint
+0.228906 109
+0.16792 716
+0.148705 712
+0.140351 59
+0.120301 118
+0.0985798 127
+0.0952381 777
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o GemsFDTD_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./GemsFDTD
+ 
+ 
+462.libquantum
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=libquantum_bbv.out --pc-out-file=libquantum_bbv.pc.out ./libquantum 1397 8
+ 
+==5288== # Thread 1
+==5288== #   Total intervals: 1858 (Interval Size 1000000000)
+==5288== #   Total instructions: 1858450842982
+==5288== #   Total reps: 12516
+==5288== #   Unique reps: 15
+==5288== #   Total fldcw instructions: 0
+ 
+# SimPoint
+0.220129 1210
+0.204521 1735
+0.203983 964
+0.182454 1146
+0.108181 1592
+0.0527449 630
+0.0156082 212
+0.0123789 1829
+ 
+# ChampSim trace
+pin -injection child -t /home/cienlux/local/lib/champsim_tracer.so -o libquantum.trace -s ${1}000000000 -t 1000000000 -- ./libquantum 1397 8
+ 
+ 
+464.h264ref
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=h264ref_bbv.out --pc-out-file=h264ref_bbv.pc.out ./h264ref -d foreman_ref_encoder_baseline.cfg
+ 
+# Valgrind output
+==10428== # Thread 1
+==10428== #   Total intervals: 445 (Interval Size 1000000000)
+==10428== #   Total instructions: 445894571376
+==10428== #   Total reps: 806030223
+==10428== #   Unique reps: 25222991
+==10428== #   Total fldcw instructions: 0
+ 
+# SimPoint
+0.359551 273
+0.21573 351
+0.168539 178
+0.148315 373
+0.103371 255
+0.00449438 0
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o h264ref_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./h264ref -d foreman_ref_encoder_baseline.cfg
+ 
+ 
+465.tonto
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=tonto_bbv.out --pc-out-file=tonto_bbv.pc.out ./tonto
+==7841== # Thread 1
+==7841== #   Total intervals: 3028 (Interval Size 1000000000)
+==7841== #   Total instructions: 3028907041135
+==7841== #   Total reps: 3278091
+==7841== #   Unique reps: 110647
+==7841== #   Total fldcw instructions: 1
+ 
+# SimPoint
+0.269155 2834
+0.205746 2049
+0.137715 422
+0.116909 1131
+0.107001 1196
+0.0957728 459
+0.0634082 2860
+0.00429326 440
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o tonto_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./tonto
+ 
+ 
+470.lbm
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=lbm_bbv.out --pc-out-file=lbm_bbv.pc.out ./lbm 3000 reference.dat 0 0 100_100_130_ldc.of
+ 
+# Valgrind output
+==6893== # Thread 1
+==6893== #   Total intervals: 1259 (Interval Size 1000000000)
+==6893== #   Total instructions: 1259804925241
+==6893== #   Total reps: 1716
+==6893== #   Unique reps: 252
+==6893== #   Total fldcw instructions: 0
+ 
+# SimPoint
+0.583797 94
+0.375695 1004
+0.0349484 564
+0.00555997 1074
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o lbm_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./lbm 3000 reference.dat 0 0 100_100_130_ldc.of
+ 
+ 
+471.omnetpp
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=omnetpp_bbv.out --pc-out-file=omnetpp_bbv.pc.out ./omnetpp omnetpp.ini
+ 
+# Valgrind output
+==10012== # Thread 1
+==10012== #   Total intervals: 549 (Interval Size 1000000000)
+==10012== #   Total instructions: 549727714315
+==10012== #   Total reps: 13269030
+==10012== #   Unique reps: 1895519
+==10012== #   Total fldcw instructions: 0
+ 
+# SimPoint
+0.954463 340
+0.0309654 17
+0.010929 4
+0.00364299 5
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o omnetpp_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./omnetpp omnetpp.ini
+ 
+ 
+473.astar
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=astar_bbv.out --pc-out-file=astar_bbv.pc.out ./astar BigLakes2048.cfg
+ 
+# Valgrind output
+==14560== # Thread 1
+==14560== #   Total intervals: 345 (Interval Size 1000000000)
+==14560== #   Total instructions: 345300730154
+==14560== #   Total reps: 2832092
+==14560== #   Unique reps: 3178
+==14560== #   Total fldcw instructions: 0
+ 
+# SimPoint
+0.452174 163
+0.22029 313
+0.162319 23
+0.127536 252
+0.0231884 276
+0.0144928 0
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o astar_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./astar BigLakes2048.cfg
+481.wrf
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=wrf_bbv.out --pc-out-file=wrf_bbv.pc.out ./wrf
+ 
+# Valgrind output
+==13228== # Thread 1
+==13228== #   Total intervals: 1980 (Interval Size 1000000000)
+==13228== #   Total instructions: 1980376787813
+==13228== #   Total reps: 453953265
+==13228== #   Unique reps: 9994420
+==13228== #   Total fldcw instructions: 1
+ 
+ 
+# SimPoint
+0.35202 1212
+0.123232 1650
+0.122222 1228
+0.118687 1979
+0.110606 144
+0.0813131 862
+0.0484848 1898
+0.0434343 86
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o wrf_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./wrf
+ 
+ 
+482.sphinx3 (Collect 2 more traces)
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=sphinx3_bbv.out --pc-out-file=sphinx3_bbv.pc.out ./sphinx3 ctlfile . args.an4
+ 
+# Valgrind output
+==11053== # Thread 1
+==11053== #   Total intervals: 3324 (Interval Size 1000000000)
+==11053== #   Total instructions: 3324075544012
+==11053== #   Total reps: 338748796
+==11053== #   Unique reps: 1085389
+==11053== #   Total fldcw instructions: 0
+ 
+# SimPoint
+0.222623 2520
+0.175692 1339
+0.135078 883
+0.116125 1200
+0.108905 348
+0.0875451 1142
+0.0788207 201
+0.0752106 588
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o sphinx3_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./sphinx3 ctlfile . args.an4
+ 
+ 
+483.xalancbmk
+# Valgrind BBV profiling
+valgrind --tool=exp-bbv --interval-size=1000000000 --bb-out-file=xalancbmk_bbv.out --pc-out-file=xalancbmk_bbv.pc.out ./xalancbmk -v t5.xml xalanc.xsl
+ 
+==2379== # Thread 1
+==2379== #   Total intervals: 906 (Interval Size 1000000000)
+==2379== #   Total instructions: 906605013535
+==2379== #   Total reps: 7722390
+==2379== #   Unique reps: 80965
+==2379== #   Total fldcw instructions: 0
+ 
+# SimPoint
+0.346578 748
+0.250552 768
+0.188742 99
+0.089404 420
+0.0871965 31
+0.0320088 9
+0.00551876 599
+ 
+# ChampSim trace
+pin -t /home/cienlux/local/lib/champsim_tracer.so -o xalancbmk_${1}B.trace -s ${1}000000000 -t 1000000000 -- ./xalancbmk -v t5.xml xalanc.xsl
